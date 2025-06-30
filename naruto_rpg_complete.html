@@ -1,0 +1,1059 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Naruto RPG: Advanced Combat</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #1a237e, #3949ab);
+            color: white;
+            overflow-x: hidden;
+        }
+
+        .game-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .game-header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .game-title {
+            font-size: 2.5em;
+            color: #ff6b35;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
+            margin-bottom: 10px;
+        }
+
+        .combat-arena {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .fighter-area {
+            background: rgba(0,0,0,0.3);
+            border-radius: 15px;
+            padding: 20px;
+            border: 2px solid #ff6b35;
+        }
+
+        .character-card {
+            background: linear-gradient(135deg, #424242, #616161);
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 15px;
+            border: 2px solid #ffc107;
+            position: relative;
+        }
+
+        .character-name {
+            font-size: 1.3em;
+            color: #ffc107;
+            margin-bottom: 10px;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
+            margin-bottom: 10px;
+        }
+
+        .stat {
+            background: rgba(0,0,0,0.4);
+            padding: 6px;
+            border-radius: 5px;
+            text-align: center;
+            font-size: 0.9em;
+        }
+
+        .health-bar, .chakra-bar {
+            width: 100%;
+            height: 20px;
+            background: rgba(0,0,0,0.5);
+            border-radius: 10px;
+            overflow: hidden;
+            margin: 5px 0;
+        }
+
+        .health-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #4caf50, #8bc34a);
+            transition: width 0.5s ease;
+        }
+
+        .chakra-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #2196f3, #03a9f4);
+            transition: width 0.5s ease;
+        }
+
+        .status-effects {
+            display: flex;
+            gap: 5px;
+            margin-top: 10px;
+            flex-wrap: wrap;
+        }
+
+        .status-effect {
+            background: rgba(255,0,0,0.7);
+            padding: 3px 8px;
+            border-radius: 12px;
+            font-size: 0.8em;
+            border: 1px solid rgba(255,255,255,0.3);
+        }
+
+        .element-info {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+
+        .element-badge {
+            background: linear-gradient(135deg, #ff5722, #ff8a65);
+            padding: 4px 8px;
+            border-radius: 8px;
+            font-size: 0.8em;
+            font-weight: bold;
+        }
+
+        .fire { background: linear-gradient(135deg, #f44336, #ff5722); }
+        .water { background: linear-gradient(135deg, #2196f3, #03a9f4); }
+        .earth { background: linear-gradient(135deg, #8d6e63, #a1887f); }
+        .wind { background: linear-gradient(135deg, #4caf50, #8bc34a); }
+        .lightning { background: linear-gradient(135deg, #ffeb3b, #ffc107); color: #333; }
+
+        .combat-controls {
+            background: rgba(0,0,0,0.4);
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .stance-selector {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+            justify-content: center;
+        }
+
+        .stance-btn {
+            background: linear-gradient(135deg, #673ab7, #9c27b0);
+            border: none;
+            color: white;
+            padding: 10px 15px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: bold;
+        }
+
+        .stance-btn.active {
+            background: linear-gradient(135deg, #ff6b35, #ff8a65);
+            transform: scale(1.1);
+        }
+
+        .stance-btn:hover {
+            transform: scale(1.05);
+        }
+
+        .action-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 15px;
+        }
+
+        .action-button {
+            background: linear-gradient(135deg, #ff6b35, #ff8a65);
+            border: none;
+            color: white;
+            padding: 15px 20px;
+            border-radius: 10px;
+            font-size: 1.1em;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            font-weight: bold;
+            position: relative;
+        }
+
+        .action-button:hover {
+            background: linear-gradient(135deg, #ff8a65, #ffab91);
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(255,107,53,0.4);
+        }
+
+        .action-button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .jutsu-menu {
+            background: rgba(0,0,0,0.3);
+            border-radius: 10px;
+            padding: 15px;
+            margin-top: 15px;
+        }
+
+        .jutsu-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .jutsu-button {
+            background: linear-gradient(135deg, #673ab7, #9c27b0);
+            border: none;
+            color: white;
+            padding: 12px 15px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-align: left;
+        }
+
+        .jutsu-button:hover {
+            background: linear-gradient(135deg, #9c27b0, #e91e63);
+            transform: scale(1.02);
+        }
+
+        .jutsu-cost {
+            font-size: 0.8em;
+            opacity: 0.8;
+        }
+
+        .battle-log {
+            background: rgba(0,0,0,0.6);
+            border-radius: 10px;
+            padding: 15px;
+            max-height: 250px;
+            overflow-y: auto;
+        }
+
+        .log-entry {
+            margin: 5px 0;
+            padding: 8px;
+            border-left: 3px solid #ff6b35;
+            padding-left: 12px;
+            background: rgba(255,255,255,0.05);
+            border-radius: 5px;
+        }
+
+        .combo-indicator {
+            position: absolute;
+            top: -10px;
+            right: -10px;
+            background: linear-gradient(135deg, #ff6b35, #ffc107);
+            color: #333;
+            padding: 5px 10px;
+            border-radius: 50px;
+            font-weight: bold;
+            font-size: 0.9em;
+            animation: pulse 1s infinite;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); }
+        }
+
+        @keyframes damage {
+            0% { transform: translateX(0); }
+            25% { transform: translateX(-8px); }
+            75% { transform: translateX(8px); }
+            100% { transform: translateX(0); }
+        }
+
+        .damage-animation {
+            animation: damage 0.6s ease-in-out;
+        }
+
+        @keyframes critical {
+            0% { transform: scale(1) rotate(0deg); }
+            25% { transform: scale(1.1) rotate(-2deg); }
+            75% { transform: scale(1.1) rotate(2deg); }
+            100% { transform: scale(1) rotate(0deg); }
+        }
+
+        .critical-animation {
+            animation: critical 0.8s ease-in-out;
+        }
+
+        .floating-damage {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 2em;
+            font-weight: bold;
+            color: #ff1744;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
+            animation: floatUp 2s ease-out forwards;
+            pointer-events: none;
+        }
+
+        @keyframes floatUp {
+            0% { opacity: 1; transform: translate(-50%, -50%); }
+            100% { opacity: 0; transform: translate(-50%, -200%); }
+        }
+
+        .turn-indicator {
+            text-align: center;
+            padding: 10px;
+            background: rgba(255,107,53,0.2);
+            border-radius: 10px;
+            margin-bottom: 15px;
+            font-weight: bold;
+            font-size: 1.2em;
+        }
+
+        .victory-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.9);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .victory-content {
+            background: linear-gradient(135deg, #ff6b35, #ffc107);
+            padding: 40px;
+            border-radius: 20px;
+            text-align: center;
+            color: #333;
+            font-size: 1.5em;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <div class="game-header">
+            <h1 class="game-title">🍃 Advanced Combat System 🍃</h1>
+            <p>Master elemental jutsu, combos, and tactical stances!</p>
+        </div>
+
+        <div class="turn-indicator" id="turnIndicator">
+            🥷 Your Turn - Choose your action!
+        </div>
+
+        <div class="combat-arena">
+            <div class="fighter-area">
+                <h2>🥷 Your Shinobi</h2>
+                <div class="character-card" id="playerCard">
+                    <div class="character-name" id="playerName">Naruto Uzumaki</div>
+                    <div class="element-info">
+                        <div class="element-badge wind" id="playerElement">🌪️ Wind</div>
+                        <div class="element-badge" id="playerStance">⚔️ Balanced</div>
+                    </div>
+                    <div class="stats-grid">
+                        <div class="stat">Lv: <span id="playerLevel">5</span></div>
+                        <div class="stat">ATK: <span id="playerAttack">35</span></div>
+                        <div class="stat">DEF: <span id="playerDefense">25</span></div>
+                        <div class="stat">SPD: <span id="playerSpeed">30</span></div>
+                        <div class="stat">CRT: <span id="playerCrit">15</span>%</div>
+                        <div class="stat">EVA: <span id="playerEvasion">10</span>%</div>
+                    </div>
+                    <div>Health: <span id="playerHealth">150</span>/<span id="playerMaxHealth">150</span></div>
+                    <div class="health-bar">
+                        <div class="health-fill" id="playerHealthBar" style="width: 100%"></div>
+                    </div>
+                    <div>Chakra: <span id="playerChakra">80</span>/<span id="playerMaxChakra">80</span></div>
+                    <div class="chakra-bar">
+                        <div class="chakra-fill" id="playerChakraBar" style="width: 100%"></div>
+                    </div>
+                    <div class="status-effects" id="playerStatus"></div>
+                </div>
+            </div>
+
+            <div class="fighter-area">
+                <h2>👹 Enemy</h2>
+                <div class="character-card" id="enemyCard">
+                    <div class="character-name" id="enemyName">Akatsuki Member</div>
+                    <div class="element-info">
+                        <div class="element-badge fire" id="enemyElement">🔥 Fire</div>
+                    </div>
+                    <div class="stats-grid">
+                        <div class="stat">Lv: <span id="enemyLevel">5</span></div>
+                        <div class="stat">ATK: <span id="enemyAttack">40</span></div>
+                        <div class="stat">DEF: <span id="enemyDefense">30</span></div>
+                        <div class="stat">SPD: <span id="enemySpeed">25</span></div>
+                        <div class="stat">CRT: <span id="enemyCrit">12</span>%</div>
+                        <div class="stat">EVA: <span id="enemyEvasion">8</span>%</div>
+                    </div>
+                    <div>Health: <span id="enemyHealth">120</span>/<span id="enemyMaxHealth">120</span></div>
+                    <div class="health-bar">
+                        <div class="health-fill" id="enemyHealthBar" style="width: 100%"></div>
+                    </div>
+                    <div class="status-effects" id="enemyStatus"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="combat-controls">
+            <div class="stance-selector">
+                <button class="stance-btn active" onclick="changeStance('balanced')" id="balancedStance">⚖️ Balanced</button>
+                <button class="stance-btn" onclick="changeStance('offensive')" id="offensiveStance">⚔️ Offensive</button>
+                <button class="stance-btn" onclick="changeStance('defensive')" id="defensiveStance">🛡️ Defensive</button>
+            </div>
+
+            <div class="action-grid">
+                <button class="action-button" onclick="performBasicAttack()">⚔️ Basic Attack</button>
+                <button class="action-button" onclick="toggleJutsuMenu()">🌀 Jutsu</button>
+                <button class="action-button" onclick="performBlock()">🛡️ Block</button>
+                <button class="action-button" onclick="performDodge()">💨 Focus Dodge</button>
+            </div>
+
+            <div class="jutsu-menu" id="jutsuMenu" style="display: none;">
+                <h3>🌀 Select Jutsu:</h3>
+                <div class="jutsu-grid">
+                    <button class="jutsu-button" onclick="useJutsu('rasengan')">
+                        🌀 <strong>Rasengan</strong><br>
+                        <span class="jutsu-cost">Cost: 20 Chakra | Wind Element</span>
+                    </button>
+                    <button class="jutsu-button" onclick="useJutsu('fireball')">
+                        🔥 <strong>Fireball Jutsu</strong><br>
+                        <span class="jutsu-cost">Cost: 15 Chakra | Fire Element</span>
+                    </button>
+                    <button class="jutsu-button" onclick="useJutsu('lightning')">
+                        ⚡ <strong>Chidori</strong><br>
+                        <span class="jutsu-cost">Cost: 25 Chakra | Lightning Element</span>
+                    </button>
+                    <button class="jutsu-button" onclick="useJutsu('water')">
+                        💧 <strong>Water Dragon</strong><br>
+                        <span class="jutsu-cost">Cost: 18 Chakra | Water Element</span>
+                    </button>
+                    <button class="jutsu-button" onclick="hideJutsuMenu()">❌ Cancel</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="battle-log" id="battleLog">
+            <div class="log-entry">🎮 Advanced Combat System Loaded! Choose your fighting stance and engage!</div>
+        </div>
+    </div>
+
+    <script>
+        // Enhanced Game State with Combat Mechanics
+        let gameState = {
+            player: {
+                name: "Naruto Uzumaki",
+                level: 5,
+                element: "wind",
+                health: 150,
+                maxHealth: 150,
+                chakra: 80,
+                maxChakra: 80,
+                attack: 35,
+                defense: 25,
+                speed: 30,
+                critRate: 15,
+                evasion: 10,
+                stance: "balanced",
+                statusEffects: [],
+                comboCount: 0,
+                blockCharge: 0
+            },
+            enemy: {
+                name: "Akatsuki Member",
+                level: 5,
+                element: "fire",
+                health: 120,
+                maxHealth: 120,
+                attack: 40,
+                defense: 30,
+                speed: 25,
+                critRate: 12,
+                evasion: 8,
+                statusEffects: []
+            },
+            battle: {
+                turn: "player",
+                turnCount: 1,
+                inProgress: true
+            }
+        };
+
+        // Element effectiveness system
+        const elementChart = {
+            fire: { strong: ["wind"], weak: ["water"] },
+            water: { strong: ["fire"], weak: ["lightning"] },
+            lightning: { strong: ["water"], weak: ["earth"] },
+            earth: { strong: ["lightning"], weak: ["wind"] },
+            wind: { strong: ["earth"], weak: ["fire"] }
+        };
+
+        // Jutsu database with advanced properties
+        const jutsuDatabase = {
+            rasengan: {
+                name: "Rasengan",
+                element: "wind",
+                damage: 45,
+                chakraCost: 20,
+                critBonus: 10,
+                effects: [],
+                comboBonus: true
+            },
+            fireball: {
+                name: "Fireball Jutsu",
+                element: "fire", 
+                damage: 35,
+                chakraCost: 15,
+                effects: [{ type: "burn", duration: 3, damage: 8 }],
+                comboBonus: false
+            },
+            lightning: {
+                name: "Chidori",
+                element: "lightning",
+                damage: 50,
+                chakraCost: 25,
+                critBonus: 20,
+                effects: [{ type: "paralysis", duration: 2 }],
+                comboBonus: true
+            },
+            water: {
+                name: "Water Dragon",
+                element: "water",
+                damage: 40,
+                chakraCost: 18,
+                effects: [{ type: "slow", duration: 3 }],
+                comboBonus: false
+            }
+        };
+
+        // Status effects system
+        const statusEffects = {
+            burn: { name: "🔥 Burn", damagePerTurn: 8, color: "#ff5722" },
+            poison: { name: "☠️ Poison", damagePerTurn: 6, color: "#4caf50" },
+            paralysis: { name: "⚡ Paralyzed", missChance: 50, color: "#ffeb3b" },
+            slow: { name: "❄️ Slow", speedReduction: 50, color: "#2196f3" },
+            buff: { name: "💪 Powered Up", attackBonus: 15, color: "#ff6b35" }
+        };
+
+        // Stance modifiers
+        const stanceModifiers = {
+            balanced: { attack: 1.0, defense: 1.0, speed: 1.0, crit: 1.0 },
+            offensive: { attack: 1.3, defense: 0.8, speed: 1.1, crit: 1.5 },
+            defensive: { attack: 0.8, defense: 1.4, speed: 0.9, crit: 0.8 }
+        };
+
+        // Initialize game
+        function initGame() {
+            updateDisplay();
+            addLog("🎮 Combat begins! Choose your strategy wisely!");
+        }
+
+        // Change stance system
+        function changeStance(newStance) {
+            if (gameState.battle.turn !== "player") return;
+            
+            gameState.player.stance = newStance;
+            
+            // Update stance buttons
+            document.querySelectorAll('.stance-btn').forEach(btn => btn.classList.remove('active'));
+            document.getElementById(newStance + 'Stance').classList.add('active');
+            
+            // Update display
+            const stanceText = {
+                balanced: "⚖️ Balanced",
+                offensive: "⚔️ Offensive", 
+                defensive: "🛡️ Defensive"
+            };
+            document.getElementById('playerStance').textContent = stanceText[newStance];
+            
+            addLog(`🥷 Stance changed to ${stanceText[newStance]}!`);
+            updateDisplay();
+        }
+
+        // Basic attack with stance modifiers
+        function performBasicAttack() {
+            if (gameState.battle.turn !== "player") return;
+            
+            const player = gameState.player;
+            const enemy = gameState.enemy;
+            const stance = stanceModifiers[player.stance];
+            
+            // Calculate attack with stance modifiers
+            let damage = Math.floor(player.attack * stance.attack);
+            let critChance = player.critRate * stance.crit;
+            
+            // Check for dodge
+            if (Math.random() * 100 < enemy.evasion) {
+                addLog("💨 Enemy dodged your attack!");
+                animateCard('enemyCard', 'dodge');
+                endPlayerTurn();
+                return;
+            }
+            
+            // Check for critical hit
+            let isCritical = Math.random() * 100 < critChance;
+            if (isCritical) {
+                damage = Math.floor(damage * 1.8);
+                addLog(`⚔️ Critical hit! You deal ${damage} damage!`);
+                animateCard('enemyCard', 'critical');
+            } else {
+                addLog(`⚔️ You attack for ${damage} damage!`);
+                animateCard('enemyCard', 'damage');
+            }
+            
+            // Apply damage
+            dealDamage(enemy, damage);
+            
+            // Increment combo
+            player.comboCount++;
+            
+            endPlayerTurn();
+        }
+
+        // Enhanced jutsu system
+        function useJutsu(jutsuKey) {
+            if (gameState.battle.turn !== "player") return;
+            
+            const jutsu = jutsuDatabase[jutsuKey];
+            const player = gameState.player;
+            const enemy = gameState.enemy;
+            
+            // Check chakra cost
+            if (player.chakra < jutsu.chakraCost) {
+                addLog("❌ Not enough chakra!");
+                return;
+            }
+            
+            // Consume chakra
+            player.chakra -= jutsu.chakraCost;
+            
+            // Calculate damage with element effectiveness
+            let damage = jutsu.damage;
+            let effectiveness = calculateElementEffectiveness(jutsu.element, enemy.element);
+            damage = Math.floor(damage * effectiveness);
+            
+            // Apply stance modifiers
+            const stance = stanceModifiers[player.stance];
+            damage = Math.floor(damage * stance.attack);
+            
+            // Combo bonus
+            if (jutsu.comboBonus && player.comboCount > 0) {
+                damage += player.comboCount * 5;
+                addLog(`🔗 Combo bonus! +${player.comboCount * 5} extra damage!`);
+            }
+            
+            // Critical hit chance with jutsu bonus
+            let critChance = player.critRate + (jutsu.critBonus || 0);
+            if (Math.random() * 100 < critChance) {
+                damage = Math.floor(damage * 2);
+                addLog(`💥 ${jutsu.name} critical hit!`);
+                animateCard('enemyCard', 'critical');
+            } else {
+                animateCard('enemyCard', 'damage');
+            }
+            
+            // Element effectiveness message
+            if (effectiveness > 1) {
+                addLog(`🌟 It's super effective!`);
+            } else if (effectiveness < 1) {
+                addLog(`😐 It's not very effective...`);
+            }
+            
+            addLog(`🌀 ${jutsu.name} deals ${damage} damage!`);
+            
+            // Deal damage
+            dealDamage(enemy, damage);
+            
+            // Apply status effects
+            jutsu.effects.forEach(effect => {
+                applyStatusEffect(enemy, effect);
+            });
+            
+            // Increment combo for combo-able jutsu
+            if (jutsu.comboBonus) {
+                player.comboCount++;
+            } else {
+                player.comboCount = 0; // Reset combo for non-combo jutsu
+            }
+            
+            hideJutsuMenu();
+            endPlayerTurn();
+        }
+
+        // Block system
+        function performBlock() {
+            if (gameState.battle.turn !== "player") return;
+            
+            gameState.player.blockCharge = 2; // Block lasts 2 turns
+            addLog("🛡️ You prepare to block incoming attacks!");
+            endPlayerTurn();
+        }
+
+        // Dodge system
+        function performDodge() {
+            if (gameState.battle.turn !== "player") return;
+            
+            gameState.player.evasion += 30; // Temporary evasion boost
+            addLog("💨 You focus on dodging the next attack!");
+            
+            // Reset after enemy turn
+            setTimeout(() => {
+                gameState.player.evasion -= 30;
+            }, 2000);
+            
+            endPlayerTurn();
+        }
+
+        // Enemy AI system
+        function enemyTurn() {
+            const enemy = gameState.enemy;
+            const player = gameState.player;
+            
+            // Check for paralysis
+            if (hasStatusEffect(enemy, 'paralysis') && Math.random() < 0.5) {
+                addLog("⚡ Enemy is paralyzed and cannot act!");
+                endEnemyTurn();
+                return;
+            }
+            
+            // Simple AI: 60% attack, 30% jutsu, 10% defend
+            const action = Math.random();
+            
+            if (action < 0.6) {
+                enemyBasicAttack();
+            } else if (action < 0.9) {
+                enemyUseJutsu();
+            } else {
+                enemyDefend();
+            }
+            
+            setTimeout(() => endEnemyTurn(), 1500);
+        }
+
+        function enemyBasicAttack() {
+            const enemy = gameState.enemy;
+            const player = gameState.player;
+            
+            let damage = enemy.attack;
+            
+            // Check if player is blocking
+            if (player.blockCharge > 0) {
+                damage = Math.floor(damage * 0.3);
+                player.blockCharge--;
+                addLog("🛡️ You blocked most of the damage!");
+            }
+            
+            // Check for dodge
+            if (Math.random() * 100 < player.evasion) {
+                addLog("💨 You dodged the enemy's attack!");
+                animateCard('playerCard', 'dodge');
+                return;
+            }
+            
+            // Check for critical
+            if (Math.random() * 100 < enemy.critRate) {
+                damage = Math.floor(damage * 1.5);
+                addLog(`👹 Enemy critical hit! Takes ${damage} damage!`);
+                animateCard('playerCard', 'critical');
+            } else {
+                addLog(`👹 Enemy attacks for ${damage} damage!`);
+                animateCard('playerCard', 'damage');
+            }
+            
+            dealDamage(player, damage);
+        }
+
+        function enemyUseJutsu() {
+            const jutsuKeys = Object.keys(jutsuDatabase);
+            const randomJutsu = jutsuKeys[Math.floor(Math.random() * jutsuKeys.length)];
+            const jutsu = jutsuDatabase[randomJutsu];
+            
+            let damage = Math.floor(jutsu.damage * 0.8); // Enemy jutsu slightly weaker
+            
+            addLog(`👹 Enemy uses ${jutsu.name} for ${damage} damage!`);
+            dealDamage(gameState.player, damage);
+            
+            // Apply effects
+            jutsu.effects.forEach(effect => {
+                applyStatusEffect(gameState.player, effect);
+            });
+            
+            animateCard('playerCard', 'damage');
+        }
+
+        function enemyDefend() {
+            addLog("👹 Enemy takes a defensive stance!");
+            // Enemy gets temporary defense boost (handled in damage calculation)
+        }
+
+        // Utility functions
+        function calculateElementEffectiveness(attackElement, defenseElement) {
+            const chart = elementChart[attackElement];
+            if (!chart) return 1.0;
+            
+            if (chart.strong.includes(defenseElement)) return 1.5;
+            if (chart.weak.includes(defenseElement)) return 0.7;
+            return 1.0;
+        }
+
+        function dealDamage(target, damage) {
+            target.health = Math.max(0, target.health - damage);
+            updateDisplay();
+            
+            if (target.health <= 0) {
+                if (target === gameState.player) {
+                    gameOver(false);
+                } else {
+                    gameOver(true);
+                }
+            }
+        }
+
+        function applyStatusEffect(target, effect) {
+            const existingEffect = target.statusEffects.find(e => e.type === effect.type);
+            if (existingEffect) {
+                existingEffect.duration = Math.max(existingEffect.duration, effect.duration);
+            } else {
+                target.statusEffects.push({...effect});
+            }
+            
+            const effectName = statusEffects[effect.type].name;
+            addLog(`${target === gameState.player ? '🥷' : '👹'} is affected by ${effectName}!`);
+            updateDisplay();
+        }
+
+        function hasStatusEffect(target, effectType) {
+            return target.statusEffects.some(effect => effect.type === effectType);
+        }
+
+        function processStatusEffects(target) {
+            target.statusEffects = target.statusEffects.filter(effect => {
+                const statusData = statusEffects[effect.type];
+                
+                // Apply damage over time effects
+                if (statusData.damagePerTurn) {
+                    dealDamage(target, statusData.damagePerTurn);
+                    addLog(`${target === gameState.player ? '🥷' : '👹'} takes ${statusData.damagePerTurn} ${statusData.name} damage!`);
+                }
+                
+                // Decrease duration
+                effect.duration--;
+                
+                // Remove if duration is 0
+                if (effect.duration <= 0) {
+                    addLog(`${statusData.name} effect wears off!`);
+                    return false;
+                }
+                return true;
+            });
+        }
+
+        function animateCard(cardId, animationType) {
+            const card = document.getElementById(cardId);
+            card.classList.add(animationType + '-animation');
+            setTimeout(() => {
+                card.classList.remove(animationType + '-animation');
+            }, 800);
+        }
+
+        function addLog(message) {
+            const log = document.getElementById('battleLog');
+            const entry = document.createElement('div');
+            entry.className = 'log-entry';
+            entry.textContent = message;
+            log.appendChild(entry);
+            log.scrollTop = log.scrollHeight;
+        }
+
+        function updateDisplay() {
+            const player = gameState.player;
+            const enemy = gameState.enemy;
+            
+            // Update player stats
+            document.getElementById('playerHealth').textContent = player.health;
+            document.getElementById('playerChakra').textContent = player.chakra;
+            document.getElementById('playerHealthBar').style.width = (player.health / player.maxHealth * 100) + '%';
+            document.getElementById('playerChakraBar').style.width = (player.chakra / player.maxChakra * 100) + '%';
+            
+            // Update enemy stats
+            document.getElementById('enemyHealth').textContent = enemy.health;
+            document.getElementById('enemyHealthBar').style.width = (enemy.health / enemy.maxHealth * 100) + '%';
+            
+            // Update status effects
+            updateStatusEffectsDisplay('playerStatus', player.statusEffects);
+            updateStatusEffectsDisplay('enemyStatus', enemy.statusEffects);
+            
+            // Update combo indicator
+            const playerCard = document.getElementById('playerCard');
+            const existingCombo = playerCard.querySelector('.combo-indicator');
+            if (existingCombo) existingCombo.remove();
+            
+            if (player.comboCount > 0) {
+                const comboIndicator = document.createElement('div');
+                comboIndicator.className = 'combo-indicator';
+                comboIndicator.textContent = `${player.comboCount}x Combo`;
+                playerCard.appendChild(comboIndicator);
+            }
+            
+            // Update turn indicator
+            const turnText = gameState.battle.turn === "player" ? 
+                "🥷 Your Turn - Choose your action!" : 
+                "👹 Enemy Turn - Prepare for attack!";
+            document.getElementById('turnIndicator').textContent = turnText;
+        }
+
+        function updateStatusEffectsDisplay(containerId, effects) {
+            const container = document.getElementById(containerId);
+            container.innerHTML = '';
+            
+            effects.forEach(effect => {
+                const statusData = statusEffects[effect.type];
+                const statusDiv = document.createElement('div');
+                statusDiv.className = 'status-effect';
+                statusDiv.style.backgroundColor = statusData.color;
+                statusDiv.textContent = `${statusData.name} (${effect.duration})`;
+                container.appendChild(statusDiv);
+            });
+        }
+
+        function endPlayerTurn() {
+            // Process player status effects
+            processStatusEffects(gameState.player);
+            
+            // Regenerate some chakra
+            gameState.player.chakra = Math.min(gameState.player.maxChakra, gameState.player.chakra + 5);
+            
+            gameState.battle.turn = "enemy";
+            gameState.battle.turnCount++;
+            updateDisplay();
+            
+            setTimeout(() => {
+                enemyTurn();
+            }, 1000);
+        }
+
+        function endEnemyTurn() {
+            // Process enemy status effects
+            processStatusEffects(gameState.enemy);
+            
+            gameState.battle.turn = "player";
+            updateDisplay();
+        }
+
+        function toggleJutsuMenu() {
+            const menu = document.getElementById('jutsuMenu');
+            menu.style.display = menu.style.display === 'none' ? 'block' : 'none';
+        }
+
+        function hideJutsuMenu() {
+            document.getElementById('jutsuMenu').style.display = 'none';
+        }
+
+        function gameOver(playerWon) {
+            gameState.battle.inProgress = false;
+            
+            const victoryScreen = document.createElement('div');
+            victoryScreen.className = 'victory-screen';
+            
+            const content = document.createElement('div');
+            content.className = 'victory-content';
+            
+            if (playerWon) {
+                content.innerHTML = `
+                    <h2>🎉 VICTORY! 🎉</h2>
+                    <p>You defeated the ${gameState.enemy.name}!</p>
+                    <p>Combo Count: ${gameState.player.comboCount}</p>
+                    <p>Turns: ${gameState.battle.turnCount}</p>
+                    <button onclick="restartGame()" style="margin-top: 20px; padding: 10px 20px; font-size: 1.2em; background: #4caf50; color: white; border: none; border-radius: 10px; cursor: pointer;">Play Again</button>
+                `;
+            } else {
+                content.innerHTML = `
+                    <h2>💀 DEFEAT 💀</h2>
+                    <p>You were defeated by the ${gameState.enemy.name}...</p>
+                    <p>Better luck next time, shinobi!</p>
+                    <button onclick="restartGame()" style="margin-top: 20px; padding: 10px 20px; font-size: 1.2em; background: #f44336; color: white; border: none; border-radius: 10px; cursor: pointer;">Try Again</button>
+                `;
+            }
+            
+            victoryScreen.appendChild(content);
+            document.body.appendChild(victoryScreen);
+        }
+
+        function restartGame() {
+            // Remove victory screen
+            const victoryScreen = document.querySelector('.victory-screen');
+            if (victoryScreen) victoryScreen.remove();
+            
+            // Reset game state
+            gameState = {
+                player: {
+                    name: "Naruto Uzumaki",
+                    level: 5,
+                    element: "wind",
+                    health: 150,
+                    maxHealth: 150,
+                    chakra: 80,
+                    maxChakra: 80,
+                    attack: 35,
+                    defense: 25,
+                    speed: 30,
+                    critRate: 15,
+                    evasion: 10,
+                    stance: "balanced",
+                    statusEffects: [],
+                    comboCount: 0,
+                    blockCharge: 0
+                },
+                enemy: {
+                    name: "Akatsuki Member",
+                    level: 5,
+                    element: "fire",
+                    health: 120,
+                    maxHealth: 120,
+                    attack: 40,
+                    defense: 30,
+                    speed: 25,
+                    critRate: 12,
+                    evasion: 8,
+                    statusEffects: []
+                },
+                battle: {
+                    turn: "player",
+                    turnCount: 1,
+                    inProgress: true
+                }
+            };
+            
+            // Reset UI
+            document.getElementById('battleLog').innerHTML = '<div class="log-entry">🎮 Advanced Combat System Loaded! Choose your fighting stance and engage!</div>';
+            document.querySelectorAll('.stance-btn').forEach(btn => btn.classList.remove('active'));
+            document.getElementById('balancedStance').classList.add('active');
+            hideJutsuMenu();
+            
+            // Update display
+            updateDisplay();
+        }
+
+        // Initialize the game when page loads
+        window.onload = function() {
+            initGame();
+        };
+    </script>
+</body>
+</html>

@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Naruto RPG: Complete WP System v47 - Legendary Summons & Tiers</title>
+    <title>Naruto RPG: Complete WP System v48 - Legendary Summons & Tiers</title>
     <style>
         * {
             margin: 0;
@@ -1373,18 +1373,18 @@ Quick action - doesn't end turn
     </div>
 
     <script>
-        // Enhanced Game State for v47 with stance, combo, and enhanced inventory systems
+        // Enhanced Game State for v48 with stance, combo, and enhanced inventory systems
         let gameState = {
             player: {
                 name: "Xannis",
                 level: 5,
                 element: "wind",
-                health: 150,
-                maxHealth: 150,
-                chakra: 80,
-                maxChakra: 80,
-                willPower: 100, // Increased to accommodate high-tier summons
-                maxWillPower: 100,
+                health: 600,
+                maxHealth: 600,
+                chakra: 320,
+                maxChakra: 320,
+                willPower: 400, // Increased to accommodate high-tier summons
+                maxWillPower: 400,
                 baseAttack: 35, // Base stats for stance calculations
                 baseDefense: 25,
                 baseSpeed: 30,
@@ -1405,8 +1405,8 @@ Quick action - doesn't end turn
                 name: "Akatsuki Member",
                 level: 5,
                 element: "fire",
-                health: 120,
-                maxHealth: 120,
+                health: 480,
+                maxHealth: 480,
                 attack: 40,
                 defense: 30,
                 speed: 25,
@@ -2737,12 +2737,14 @@ Count: ${item.count}">
                 return;
             }
             
-            let damage = playerStats.attack;
-            
+            let baseDamage = playerStats.attack;
+
             // Add combo bonus
             if (player.comboCount > 0) {
-                damage += player.comboCount * 2; // +2 damage per combo
+                baseDamage += player.comboCount * 2; // +2 damage per combo
             }
+
+            let damage = randomizedDamage(baseDamage);
             
             // Check for guaranteed critical hit
             let isCritical = hasSpecialEffect(player, 'guaranteedCrit') || 
@@ -2837,12 +2839,14 @@ Count: ${item.count}">
                     return;
                 }
                 
-                // Calculate damage with combo bonus
-                let damage = jutsu.damage;
-                
+                // Calculate damage with combo bonus and variance
+                let baseDamage = jutsu.damage;
+
                 if (player.comboCount > 0 && jutsu.comboBonus) {
-                    damage += player.comboCount * jutsu.comboBonus;
+                    baseDamage += player.comboCount * jutsu.comboBonus;
                 }
+
+                let damage = randomizedDamage(baseDamage);
                 
                 // Apply status effect modifiers to player stats
                 const playerStats = getModifiedStats(player);
@@ -2971,7 +2975,8 @@ Count: ${item.count}">
             const enemyStats = getModifiedStats(enemy);
             const playerStats = getModifiedStats(player);
             
-            let damage = enemyStats.attack;
+            let baseDamage = enemyStats.attack;
+            let damage = randomizedDamage(baseDamage);
             
             // Check if player is blocking
             if (player.blockCharge > 0) {
@@ -3030,7 +3035,8 @@ Count: ${item.count}">
             const enemyStats = getModifiedStats(gameState.enemy);
             const playerStats = getModifiedStats(gameState.player);
             
-            let damage = Math.floor(jutsu.damage * 0.8); // Enemy jutsu slightly weaker
+            let baseDamage = Math.floor(jutsu.damage * 0.8); // Enemy jutsu slightly weaker
+            let damage = randomizedDamage(baseDamage);
             
             // Check for perfect dodge
             if (Math.random() * 100 < playerStats.evasion) {
@@ -3204,6 +3210,14 @@ Count: ${item.count}">
             });
             
             return modifiedStats;
+        }
+
+        // Calculate variable damage within ±10% range
+        function randomizedDamage(base) {
+            const variance = 0.1;
+            const min = Math.floor(base * (1 - variance));
+            const max = Math.ceil(base * (1 + variance));
+            return Math.floor(Math.random() * (max - min + 1) + min);
         }
 
         // NEW: Check for special status effects

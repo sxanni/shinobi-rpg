@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Naruto RPG: Complete WP System v47 - Legendary Summons & Tiers</title>
+    <title>Naruto RPG: Complete WP System v48 - Legendary Summons & Tiers</title>
     <style>
         * {
             margin: 0;
@@ -723,13 +723,13 @@
             border-radius: 0 0 5px 5px;
         }
 
-        /* Menu buttons - Enhanced for 6-button layout */
+        /* Menu buttons - Expanded layout for additional actions */
         .battle-controls {
             height: 60px;
             background: rgba(240, 240, 240, 0.95);
             border-top: 2px solid #000;
             display: grid;
-            grid-template-columns: 1fr 1fr 1fr;
+            grid-template-columns: repeat(4, 1fr);
             grid-template-rows: 1fr 1fr;
         }
 
@@ -1160,7 +1160,8 @@ Builds combo counter">
                 ⚔️ ATTACK
             </button>
             
-            <button class="menu-button" id="jutsuButton" onclick="toggleJutsuMenu()">
+            <button class="menu-button" id="jutsuButton" onclick="toggleJutsuMenu()"
+                    data-tooltip="Use Ninjutsu Techniques\nOffensive or defensive skills\nConsume chakra and will power">
                 🌀 JUTSU
                 <div class="dropdown-menu" id="jutsuDropdown">
                     <div class="dropdown-item" onclick="useJutsu('rasengan')" 
@@ -1250,7 +1251,30 @@ Regeneration: +12 HP x 3 turns">
                 </div>
             </button>
 
-            <button class="menu-button locked" id="summonButton" onclick="toggleSummonMenu()" 
+            <button class="menu-button" id="defendButton" onclick="toggleDefenseMenu()"
+                    data-tooltip="Defensive Actions\nPrepare to mitigate damage\nChoose to dodge or block">
+                🛡️ DEFEND ▼
+                <div class="dropdown-menu" id="defenseDropdown">
+                    <div class="dropdown-item" onclick="performDodge()"
+                         data-tooltip="Dodge incoming attack\nRaises evasion for one turn\n+3 WP if successful">
+                        <div class="jutsu-info">
+                            <div class="jutsu-name">Dodge</div>
+                            <div class="jutsu-cost">No Cost</div>
+                        </div>
+                        <div class="jutsu-element">💨</div>
+                    </div>
+                    <div class="dropdown-item" onclick="performBlock()"
+                         data-tooltip="Block the next attack\nSignificantly reduces damage\nPrevents status effects">
+                        <div class="jutsu-info">
+                            <div class="jutsu-name">Block</div>
+                            <div class="jutsu-cost">No Cost</div>
+                        </div>
+                        <div class="jutsu-element">🛡️</div>
+                    </div>
+                </div>
+            </button>
+
+            <button class="menu-button locked" id="summonButton" onclick="toggleSummonMenu()"
                     data-tooltip="Summoning Techniques
 Summon powerful allies to fight beside you
 Requires high chakra and will power
@@ -1373,18 +1397,18 @@ Quick action - doesn't end turn
     </div>
 
     <script>
-        // Enhanced Game State for v47 with stance, combo, and enhanced inventory systems
+        // Enhanced Game State for v48 with stance, combo, and enhanced inventory systems
         let gameState = {
             player: {
                 name: "Xannis",
                 level: 5,
                 element: "wind",
-                health: 150,
-                maxHealth: 150,
-                chakra: 80,
-                maxChakra: 80,
-                willPower: 100, // Increased to accommodate high-tier summons
-                maxWillPower: 100,
+                health: 600,
+                maxHealth: 600,
+                chakra: 320,
+                maxChakra: 320,
+                willPower: 400, // Increased to accommodate high-tier summons
+                maxWillPower: 400,
                 baseAttack: 35, // Base stats for stance calculations
                 baseDefense: 25,
                 baseSpeed: 30,
@@ -1399,14 +1423,15 @@ Quick action - doesn't end turn
                 stance: "balanced", // Current stance
                 comboCount: 0, // Combo counter
                 statusEffects: [],
-                blockCharge: 0
+                blockCharge: 0,
+                dodgePrepared: false
             },
             enemy: {
                 name: "Akatsuki Member",
                 level: 5,
                 element: "fire",
-                health: 120,
-                maxHealth: 120,
+                health: 480,
+                maxHealth: 480,
                 attack: 40,
                 defense: 30,
                 speed: 25,
@@ -2737,12 +2762,14 @@ Count: ${item.count}">
                 return;
             }
             
-            let damage = playerStats.attack;
-            
+            let baseDamage = playerStats.attack;
+
             // Add combo bonus
             if (player.comboCount > 0) {
-                damage += player.comboCount * 2; // +2 damage per combo
+                baseDamage += player.comboCount * 2; // +2 damage per combo
             }
+
+            let damage = randomizedDamage(baseDamage);
             
             // Check for guaranteed critical hit
             let isCritical = hasSpecialEffect(player, 'guaranteedCrit') || 
@@ -2775,6 +2802,10 @@ Count: ${item.count}">
             updateComboDisplay();
             
             dealDamage(enemy, damage);
+            gainWillPower(2, "Successful Hit");
+            if (isCritical) {
+                gainWillPower(5, "Critical Hit");
+            }
             addToBattleLog(`Xannis attacks for ${damage} damage! (Combo: ${player.comboCount})`);
             
             // Check for enemy counter attack
@@ -2837,12 +2868,14 @@ Count: ${item.count}">
                     return;
                 }
                 
-                // Calculate damage with combo bonus
-                let damage = jutsu.damage;
-                
+                // Calculate damage with combo bonus and variance
+                let baseDamage = jutsu.damage;
+
                 if (player.comboCount > 0 && jutsu.comboBonus) {
-                    damage += player.comboCount * jutsu.comboBonus;
+                    baseDamage += player.comboCount * jutsu.comboBonus;
                 }
+
+                let damage = randomizedDamage(baseDamage);
                 
                 // Apply status effect modifiers to player stats
                 const playerStats = getModifiedStats(player);
@@ -2879,6 +2912,10 @@ Count: ${item.count}">
                 }
                 
                 dealDamage(target, damage);
+                gainWillPower(2, "Successful Hit");
+                if (isCritical) {
+                    gainWillPower(5, "Critical Hit");
+                }
                 addToBattleLog(`Xannis uses ${jutsu.name} for ${damage} damage! (Combo: ${player.comboCount})`);
                 
                 // Check for enemy counter attack
@@ -2913,14 +2950,16 @@ Count: ${item.count}">
 
         function performDodge() {
             if (gameState.battle.turn !== "player") return;
-            
+
             gameState.player.evasion += 30;
+            gameState.player.dodgePrepared = true;
             updateBattleMessage("You focus on dodging the next attack!");
             addToBattleLog("Xannis prepares to dodge!");
-            
+
             // Reset after enemy turn
             setTimeout(() => {
                 gameState.player.evasion -= 30;
+                gameState.player.dodgePrepared = false;
             }, 3000);
             
             hideAllDropdowns();
@@ -2971,7 +3010,8 @@ Count: ${item.count}">
             const enemyStats = getModifiedStats(enemy);
             const playerStats = getModifiedStats(player);
             
-            let damage = enemyStats.attack;
+            let baseDamage = enemyStats.attack;
+            let damage = randomizedDamage(baseDamage);
             
             // Check if player is blocking
             if (player.blockCharge > 0) {
@@ -3030,7 +3070,8 @@ Count: ${item.count}">
             const enemyStats = getModifiedStats(gameState.enemy);
             const playerStats = getModifiedStats(gameState.player);
             
-            let damage = Math.floor(jutsu.damage * 0.8); // Enemy jutsu slightly weaker
+            let baseDamage = Math.floor(jutsu.damage * 0.8); // Enemy jutsu slightly weaker
+            let damage = randomizedDamage(baseDamage);
             
             // Check for perfect dodge
             if (Math.random() * 100 < playerStats.evasion) {
@@ -3206,6 +3247,14 @@ Count: ${item.count}">
             return modifiedStats;
         }
 
+        // Calculate variable damage within ±10% range
+        function randomizedDamage(base) {
+            const variance = 0.1;
+            const min = Math.floor(base * (1 - variance));
+            const max = Math.ceil(base * (1 + variance));
+            return Math.floor(Math.random() * (max - min + 1) + min);
+        }
+
         // NEW: Check for special status effects
         function hasSpecialEffect(character, effectType) {
             return character.statusEffects.some(effect => {
@@ -3238,8 +3287,8 @@ Count: ${item.count}">
         }
 
         function showFloatingDamage(amount, isCritical, isPlayerTarget = false, isHealing = false) {
-            const container = isPlayerTarget ? 
-                document.getElementById('playerSpriteContainer') : 
+            const container = isPlayerTarget ?
+                document.getElementById('playerSpriteContainer') :
                 document.getElementById('enemySpriteContainer');
             
             const damageText = document.createElement('div');
@@ -3266,6 +3315,14 @@ Count: ${item.count}">
             setTimeout(() => {
                 damageText.remove();
             }, 2000);
+        }
+
+        // Award WP if a prepared dodge succeeds
+        function checkDodgeSuccess() {
+            if (gameState.player.dodgePrepared) {
+                gainWillPower(3, "Successful Dodge");
+                gameState.player.dodgePrepared = false;
+            }
         }
 
         // Enhanced UI Management with smooth bar animations

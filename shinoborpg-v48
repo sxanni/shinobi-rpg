@@ -1,0 +1,3759 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Naruto RPG: Complete WP System v47 - Legendary Summons & Tiers</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Courier New', monospace;
+            background: linear-gradient(135deg, #2e7d32, #66bb6a);
+            color: #000;
+            overflow: hidden;
+            height: 100vh;
+        }
+
+        .game-container {
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            background: #c8e6c9;
+            border: 8px solid #1b5e20;
+        }
+
+        /* Battle Arena - Main combat view */
+        .battle-arena {
+            flex: 1;
+            background: linear-gradient(to bottom, #87ceeb 0%, #87ceeb 40%, #8fbc8f 40%, #228b22 100%);
+            position: relative;
+            overflow: hidden;
+            border-bottom: 4px solid #1b5e20;
+        }
+
+        /* Sprite containers positioned like Pokémon */
+        .enemy-area {
+            position: absolute;
+            top: 20px;
+            right: 80px;
+            z-index: 10;
+        }
+
+        .player-area {
+            position: absolute;
+            bottom: 80px;
+            left: 40px;
+            z-index: 10;
+        }
+
+        /* Sprite placeholders with future animation hooks */
+        .sprite-container {
+            position: relative;
+        }
+
+        #enemySprite {
+            width: 120px;
+            height: 120px;
+            background: #ff6b35;
+            border: 3px solid #000;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 48px;
+            transition: all 0.3s ease;
+        }
+
+        #playerSprite {
+            width: 100px;
+            height: 100px;
+            background: #2196f3;
+            border: 3px solid #000;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 40px;
+            transition: all 0.3s ease;
+            transform: scaleX(-1); /* Back sprite effect */
+        }
+
+        /* Sprite animation states - ready for JS integration */
+        .sprite-container[data-state="attack"] .sprite {
+            transform: scale(1.2) translateX(10px);
+        }
+
+        .sprite-container[data-state="hurt"] .sprite {
+            animation: hurtShake 0.5s ease-in-out;
+        }
+
+        .sprite-container[data-state="idle"] .sprite {
+            animation: idleBreathe 2s ease-in-out infinite;
+        }
+
+        @keyframes hurtShake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-5px); }
+            75% { transform: translateX(5px); }
+        }
+
+        @keyframes idleBreathe {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.02); }
+        }
+
+        /* Character HUD positioning */
+        .enemy-hud {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            width: 300px;
+        }
+
+        .player-hud {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            width: 300px;
+        }
+
+        /* Enhanced Character HUD */
+        .character-hud {
+            background: rgba(255, 255, 255, 0.95);
+            border: 4px solid #000;
+            border-radius: 12px;
+            padding: 12px;
+            font-size: 14px;
+            font-weight: bold;
+        }
+
+        .hud-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .character-name {
+            font-size: 16px;
+            color: #1565c0;
+        }
+
+        .character-level {
+            background: #ffc107;
+            color: #000;
+            padding: 2px 6px;
+            border-radius: 8px;
+            font-size: 12px;
+        }
+
+        /* Enhanced Health/Chakra/WP bars with color draining */
+        .status-bars {
+            margin-bottom: 8px;
+        }
+
+        .status-bar {
+            display: flex;
+            align-items: center;
+            margin-bottom: 4px;
+        }
+
+        .bar-label {
+            width: 25px;
+            font-size: 12px;
+            margin-right: 8px;
+        }
+
+        .bar-container {
+            flex: 1;
+            height: 12px;
+            background: #333;
+            border: 2px solid #000;
+            border-radius: 6px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        /* New colored bar system with smooth transitions */
+        .hp-fill { 
+            background: linear-gradient(90deg, #e53e3e, #fc8181);
+            transition: width 0.5s ease-out;
+            height: 100%;
+        }
+        .cp-fill { 
+            background: linear-gradient(90deg, #3182ce, #63b3ed);
+            transition: width 0.5s ease-out;
+            height: 100%;
+        }
+        .wp-fill { 
+            background: linear-gradient(90deg, #38a169, #68d391);
+            transition: width 0.5s ease-out;
+            height: 100%;
+        }
+
+        .bar-text {
+            margin-left: 8px;
+            font-size: 10px;
+            min-width: 50px;
+        }
+
+        /* Element and role display */
+        .character-info {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 8px;
+            flex-wrap: wrap;
+        }
+
+        .element-badge, .role-badge {
+            padding: 2px 6px;
+            border-radius: 6px;
+            font-size: 10px;
+            border: 1px solid #000;
+        }
+
+        .fire { background: #ff5722; color: white; }
+        .water { background: #2196f3; color: white; }
+        .earth { background: #8d6e63; color: white; }
+        .wind { background: #4caf50; color: white; }
+        .lightning { background: #ffeb3b; color: #333; }
+
+        .role-offensive { background: #f44336; color: white; }
+        .role-balanced { background: #ff9800; color: white; }
+        .role-defensive { background: #795548; color: white; }
+
+        /* NEW: Stance Display */
+        .stance-badge {
+            background: #9c27b0;
+            color: white;
+            padding: 2px 6px;
+            border-radius: 6px;
+            font-size: 10px;
+            border: 1px solid #000;
+            font-weight: bold;
+        }
+
+         /* Summon tier indicators and enhanced visuals */
+        .summon-tier-legendary {
+            border: 3px solid #ffd700 !important;
+            box-shadow: 0 0 15px rgba(255, 215, 0, 0.6);
+        }
+
+        .summon-tier-bijuu {
+            border: 3px solid #ff6b35 !important;
+            box-shadow: 0 0 20px rgba(255, 107, 53, 0.8);
+            animation: bijuuPulse 3s ease-in-out infinite;
+        }
+
+        .summon-tier-ultimate {
+            border: 3px solid #e91e63 !important;
+            box-shadow: 0 0 25px rgba(233, 30, 99, 1);
+            animation: ultimatePulse 2s ease-in-out infinite;
+        }
+
+        .summon-tier-godlike {
+            border: 3px solid #9c27b0 !important;
+            box-shadow: 0 0 30px rgba(156, 39, 176, 1);
+            animation: godlikePulse 1.5s ease-in-out infinite;
+        }
+
+        @keyframes bijuuPulse {
+            0%, 100% { 
+                transform: scale(1);
+                box-shadow: 0 0 20px rgba(255, 107, 53, 0.8);
+            }
+            50% { 
+                transform: scale(1.03);
+                box-shadow: 0 0 30px rgba(255, 107, 53, 1);
+            }
+        }
+
+        @keyframes ultimatePulse {
+            0%, 100% { 
+                transform: scale(1);
+                box-shadow: 0 0 25px rgba(233, 30, 99, 1);
+            }
+            50% { 
+                transform: scale(1.05);
+                box-shadow: 0 0 40px rgba(233, 30, 99, 1);
+            }
+        }
+
+        @keyframes godlikePulse {
+            0%, 100% { 
+                transform: scale(1);
+                box-shadow: 0 0 30px rgba(156, 39, 176, 1);
+            }
+            50% { 
+                transform: scale(1.07);
+                box-shadow: 0 0 50px rgba(156, 39, 176, 1);
+            }
+        }
+
+        /* Enhanced dropdown items for different summon tiers */
+        .dropdown-item.summon-legendary {
+            background: linear-gradient(135deg, rgba(255, 215, 0, 0.1), rgba(255, 215, 0, 0.05));
+            border-left: 4px solid #ffd700;
+        }
+
+        .dropdown-item.summon-bijuu {
+            background: linear-gradient(135deg, rgba(255, 107, 53, 0.15), rgba(255, 107, 53, 0.05));
+            border-left: 4px solid #ff6b35;
+        }
+
+        .dropdown-item.summon-ultimate {
+            background: linear-gradient(135deg, rgba(233, 30, 99, 0.15), rgba(233, 30, 99, 0.05));
+            border-left: 4px solid #e91e63;
+        }
+
+        .dropdown-item.summon-godlike {
+            background: linear-gradient(135deg, rgba(156, 39, 176, 0.15), rgba(156, 39, 176, 0.05));
+            border-left: 4px solid #9c27b0;
+        }
+
+        /* WP threshold indicators */
+        .wp-threshold {
+            position: absolute;
+            top: 2px;
+            right: 2px;
+            background: #9c27b0;
+            color: white;
+            border-radius: 10px;
+            padding: 2px 6px;
+            font-size: 9px;
+            font-weight: bold;
+            border: 1px solid #fff;
+        }
+
+        .wp-threshold.tier-legendary { background: #ffd700; color: #000; }
+        .wp-threshold.tier-bijuu { background: #ff6b35; }
+        .wp-threshold.tier-ultimate { background: #e91e63; }
+        .wp-threshold.tier-godlike { background: #9c27b0; }
+
+        /* Enhanced ready state for high-tier summons */
+        .menu-button.ready.high-tier {
+            animation: highTierReady 2s ease-in-out infinite;
+        }
+
+        @keyframes highTierReady {
+            0%, 100% { 
+                background: linear-gradient(135deg, #4caf50, #81c784);
+                box-shadow: 0 0 15px rgba(76, 175, 80, 0.5);
+            }
+            50% { 
+                background: linear-gradient(135deg, #ffd700, #ffed4e);
+                box-shadow: 0 0 25px rgba(255, 215, 0, 0.8);
+            }
+        }
+
+        /* NEW: Summon sprite positioning */
+        .summon-area {
+            position: absolute;
+            bottom: 80px;
+            left: 160px; /* Next to player sprite */
+            z-index: 15;
+        }
+
+        .summon-container {
+            position: relative;
+        }
+
+        #summonSprite {
+            width: 80px;
+            height: 80px;
+            background: rgba(255, 215, 0, 0.9);
+            border: 3px solid #000;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 32px;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        #summonSprite:hover {
+            transform: scale(1.1);
+        }
+
+        /* Summon HP bar */
+        .summon-hp-bar {
+            position: absolute;
+            bottom: -8px;
+            left: 0;
+            right: 0;
+            height: 6px;
+            background: #333;
+            border: 1px solid #000;
+            border-radius: 3px;
+            overflow: hidden;
+        }
+
+        .summon-hp-fill {
+            background: linear-gradient(90deg, #ffd700, #ffed4e);
+            height: 100%;
+            transition: width 0.3s ease;
+        }
+
+        /* Summon tooltip */
+        .summon-tooltip {
+            position: absolute;
+            bottom: calc(100% + 10px);
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(45, 45, 45, 0.95);
+            color: white;
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-size: 11px;
+            white-space: nowrap;
+            z-index: 1000;
+            border: 1px solid #666;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.2s ease;
+            pointer-events: none;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+        }
+
+        #summonSprite:hover .summon-tooltip {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        /* Menu button states for locked abilities */
+        .menu-button.locked {
+            background: linear-gradient(135deg, #666, #999);
+            color: #ccc;
+            cursor: not-allowed;
+            opacity: 0.6;
+        }
+
+        .menu-button.ready {
+            background: linear-gradient(135deg, #4caf50, #81c784);
+            animation: readyPulse 2s ease-in-out infinite;
+            box-shadow: 0 0 10px rgba(76, 175, 80, 0.5);
+        }
+
+        @keyframes readyPulse {
+            0%, 100% { 
+                transform: scale(1);
+                box-shadow: 0 0 10px rgba(76, 175, 80, 0.5);
+            }
+            50% { 
+                transform: scale(1.02);
+                box-shadow: 0 0 20px rgba(76, 175, 80, 0.8);
+            }
+        }
+
+        /* Ready badge for unlocked abilities */
+        .ready-badge {
+            position: absolute;
+            top: -5px;
+            right: -5px;
+            background: #4caf50;
+            color: white;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            font-size: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            border: 2px solid #fff;
+            animation: badgeGlow 1.5s ease-in-out infinite;
+        }
+
+        @keyframes badgeGlow {
+            0%, 100% { 
+                transform: scale(1);
+                box-shadow: 0 0 5px rgba(76, 175, 80, 0.5);
+            }
+            50% { 
+                transform: scale(1.1);
+                box-shadow: 0 0 15px rgba(76, 175, 80, 1);
+            }
+        }
+        .combo-display {
+            position: absolute;
+            top: 160px;
+            right: 20px;
+            background: rgba(255, 215, 0, 0.95);
+            border: 3px solid #000;
+            border-radius: 12px;
+            padding: 8px 12px;
+            font-size: 14px;
+            font-weight: bold;
+            z-index: 60;
+            min-width: 80px;
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+
+        .combo-display.hidden {
+            opacity: 0;
+            transform: scale(0.8);
+        }
+
+        .combo-number {
+            font-size: 24px;
+            color: #d32f2f;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+        }
+
+        .combo-text {
+            font-size: 10px;
+            color: #333;
+        }
+
+        /* Stats grid */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 4px;
+            margin-bottom: 8px;
+            font-size: 10px;
+        }
+
+        .stat {
+            background: rgba(0,0,0,0.1);
+            padding: 2px 4px;
+            border-radius: 4px;
+            text-align: center;
+        }
+
+        /* Status effects */
+        .status-effects {
+            display: flex;
+            gap: 4px;
+            flex-wrap: wrap;
+        }
+
+        .status-effect {
+            background: rgba(255,0,0,0.8);
+            color: #000;
+            padding: 2px 6px;
+            border-radius: 8px;
+            font-size: 9px;
+            border: 1px solid #000;
+            position: relative;
+            cursor: help;
+            font-weight: bold;
+        }
+
+        .status-effect::after {
+            content: attr(data-tooltip);
+            position: absolute;
+            bottom: calc(100% + 8px);
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(45, 45, 45, 0.95);
+            color: white;
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-size: 11px;
+            white-space: nowrap;
+            z-index: 1000;
+            border: 1px solid #666;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.2s ease;
+            pointer-events: none;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+            min-width: 100px;
+            text-align: center;
+        }
+
+        .status-effect::before {
+            content: '';
+            position: absolute;
+            bottom: calc(100% + 2px);
+            left: 50%;
+            transform: translateX(-50%);
+            border: 6px solid transparent;
+            border-top-color: rgba(45, 45, 45, 0.95);
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.2s ease;
+            z-index: 1001;
+        }
+
+        .status-effect:hover::after,
+        .status-effect:hover::before {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        /* Smart positioning for status tooltips near screen edges */
+        .enemy-hud .status-effect::after {
+            bottom: auto;
+            top: calc(100% + 8px);
+            transform: translateX(-50%);
+        }
+
+        .enemy-hud .status-effect::before {
+            bottom: auto;
+            top: calc(100% + 2px);
+            border-top-color: transparent;
+            border-bottom-color: rgba(45, 45, 45, 0.95);
+        }
+
+        .player-hud .status-effect::after {
+            bottom: calc(100% + 8px);
+        }
+
+        /* Battle Message Box - Fixed bottom */
+        .battle-message-container {
+            height: 120px;
+            background: rgba(255, 255, 255, 0.95);
+            border-top: 4px solid #000;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+        }
+
+        .battle-message {
+            flex: 1;
+            padding: 16px;
+            padding-right: 60px;
+            border-bottom: 2px solid #ccc;
+            font-size: 14px;
+            font-weight: bold;
+            line-height: 1.4;
+            overflow-y: auto;
+            position: relative;
+        }
+
+        .battle-message.expanded {
+            height: 200px;
+            position: absolute;
+            bottom: 60px;
+            left: 0;
+            right: 0;
+            background: rgba(255, 255, 255, 0.98);
+            border: 4px solid #000;
+            z-index: 100;
+            padding: 16px;
+            padding-right: 60px;
+        }
+
+        /* NEW: Stance Controls - Positioned next to player HUD */
+        .stance-controls {
+            position: absolute;
+            bottom: 20px;
+            right: 340px;
+            background: rgba(255, 255, 255, 0.9);
+            border: 3px solid #000;
+            border-radius: 8px;
+            z-index: 50;
+        }
+
+        .stance-button-main {
+            background: linear-gradient(135deg, #fff, #f0f0f0);
+            border: none;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            padding: 8px 12px;
+            border-radius: 5px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            min-width: 100px;
+            position: relative;
+        }
+
+        .stance-button-main:hover {
+            background: linear-gradient(135deg, #e3f2fd, #bbdefb);
+        }
+
+        .stance-dropdown-arrow {
+            margin-left: auto;
+            font-size: 10px;
+        }
+
+        .stance-dropdown-menu {
+            position: absolute;
+            bottom: 100%;
+            left: 0;
+            right: 0;
+            background: rgba(255, 255, 255, 0.98);
+            border: 3px solid #000;
+            border-bottom: none;
+            border-radius: 8px 8px 0 0;
+            z-index: 200;
+            display: none;
+        }
+
+        .stance-dropdown-menu.active {
+            display: block;
+        }
+
+        .stance-option {
+            padding: 8px 12px;
+            border-bottom: 1px solid #ccc;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 11px;
+            transition: background 0.2s ease;
+        }
+
+        .stance-option:hover {
+            background: #e3f2fd;
+        }
+
+        .stance-option.current {
+            background: rgba(156, 39, 176, 0.1);
+            border-left: 3px solid #9c27b0;
+        }
+
+        .stance-option:last-child {
+            border-bottom: none;
+            border-radius: 0 0 5px 5px;
+        }
+
+        /* Menu buttons - Enhanced for 6-button layout */
+        .battle-controls {
+            height: 60px;
+            background: rgba(240, 240, 240, 0.95);
+            border-top: 2px solid #000;
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            grid-template-rows: 1fr 1fr;
+        }
+
+        .menu-button {
+            background: linear-gradient(135deg, #fff, #f0f0f0);
+            border: 2px solid #000;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+
+        .menu-button:hover {
+            background: linear-gradient(135deg, #e3f2fd, #bbdefb);
+        }
+
+        .menu-button:active {
+            transform: scale(0.95);
+        }
+
+        /* Dropdown menus */
+        .dropdown-menu {
+            position: absolute;
+            bottom: 100%;
+            left: 0;
+            right: 0;
+            background: rgba(255, 255, 255, 0.98);
+            border: 3px solid #000;
+            border-bottom: none;
+            max-height: 200px;
+            overflow-y: auto;
+            z-index: 200;
+            display: none;
+        }
+
+        .dropdown-menu.active {
+            display: block;
+        }
+
+        .dropdown-item {
+            padding: 12px 16px;
+            border-bottom: 1px solid #ccc;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 12px;
+            position: relative;
+        }
+
+        .dropdown-item:hover {
+            background: #e3f2fd;
+        }
+
+        .jutsu-info {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+        }
+
+        .jutsu-name {
+            font-weight: bold;
+            margin-bottom: 2px;
+        }
+
+        .jutsu-cost {
+            font-size: 10px;
+            color: #666;
+        }
+
+        .jutsu-element {
+            margin-left: 8px;
+            font-size: 16px;
+        }
+
+        /* Dynamic tooltip that follows cursor */
+        .jutsu-tooltip-dynamic {
+            position: fixed;
+            background: rgba(45, 45, 45, 0.95);
+            color: white;
+            padding: 12px 16px;
+            border-radius: 8px;
+            font-size: 12px;
+            white-space: pre-line;
+            z-index: 1000;
+            border: 1px solid #666;
+            max-width: 280px;
+            min-width: 200px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+            line-height: 1.4;
+            pointer-events: none;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.2s ease;
+            word-wrap: break-word;
+            text-align: left;
+        }
+
+        /* Inventory Panel */
+        .inventory-panel {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            width: 200px;
+            background: rgba(255, 255, 255, 0.9);
+            border: 3px solid #000;
+            border-radius: 8px;
+            padding: 12px;
+            z-index: 50;
+            display: none;
+        }
+
+        .inventory-panel.active {
+            display: block;
+        }
+
+        .inventory-header {
+            font-size: 14px;
+            font-weight: bold;
+            margin-bottom: 8px;
+            text-align: center;
+        }
+
+        .inventory-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 6px;
+            margin-bottom: 12px;
+        }
+
+        .item-slot, .gear-slot {
+            background: rgba(0,0,0,0.1);
+            border: 2px solid #666;
+            border-radius: 6px;
+            padding: 8px;
+            text-align: center;
+            font-size: 10px;
+            min-height: 40px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .item-slot.filled, .gear-slot.filled {
+            background: rgba(76, 175, 80, 0.2);
+            border-color: #4caf50;
+        }
+
+        .item-slot.filled:hover {
+            background: rgba(76, 175, 80, 0.4);
+            transform: scale(1.05);
+        }
+
+        /* VFX Layer for future particle effects */
+        .vfx-layer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            pointer-events: none;
+            z-index: 1000;
+        }
+
+        /* Floating damage numbers */
+        .floating-damage {
+            position: absolute;
+            font-size: 24px;
+            font-weight: bold;
+            color: #ff1744;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
+            animation: floatUp 2s ease-out forwards;
+            pointer-events: none;
+            z-index: 999;
+        }
+
+        @keyframes floatUp {
+            0% { opacity: 1; transform: translateY(0); }
+            100% { opacity: 0; transform: translateY(-100px); }
+        }
+
+        /* Expand/collapse toggle for battle log */
+        .message-toggle {
+            position: absolute;
+            top: 8px;
+            right: 12px;
+            background: rgba(255, 255, 255, 0.8);
+            border: 2px solid #333;
+            border-radius: 4px;
+            font-size: 14px;
+            cursor: pointer;
+            z-index: 101;
+            padding: 4px 8px;
+            font-weight: bold;
+        }
+
+        .message-toggle:hover {
+            background: rgba(255, 255, 255, 1);
+        }
+
+        /* Responsive design */
+        @media (max-width: 768px) {
+            .enemy-hud, .player-hud {
+                width: 250px;
+            }
+            
+            .character-hud {
+                padding: 8px;
+                font-size: 12px;
+            }
+            
+            #enemySprite, #playerSprite {
+                width: 80px;
+                height: 80px;
+                font-size: 32px;
+            }
+
+            .stance-controls {
+                right: 280px;
+                width: auto;
+            }
+
+            .combo-display {
+                top: 140px;
+                right: 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <!-- Battle Arena - Main combat view -->
+        <div class="battle-arena">
+            <!-- VFX Layer for particle effects -->
+            <div class="vfx-layer" id="vfxLayer"></div>
+            
+            <!-- Enemy Area (Top Right) -->
+            <div class="enemy-area">
+                <div class="sprite-container" id="enemySpriteContainer" data-state="idle">
+                    <div id="enemySprite" class="sprite">👹</div>
+                </div>
+            </div>
+            
+            <!-- Player Area (Bottom Left) -->
+            <div class="player-area">
+                <div class="sprite-container" id="playerSpriteContainer" data-state="idle">
+                    <div id="playerSprite" class="sprite">🥷</div>
+                </div>
+            </div>
+            
+            <!-- NEW: Summon Area (Next to Player) -->
+            <div class="summon-area" id="summonArea" style="display: none;">
+                <div class="summon-container" id="summonContainer">
+                    <div id="summonSprite"></div>
+                    <div class="summon-hp-bar">
+                        <div class="summon-hp-fill" id="summonHpFill" style="width: 100%"></div>
+                    </div>
+                    <div class="summon-tooltip" id="summonTooltip">
+                        <!-- Tooltip content populated by JS -->
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Enemy HUD (Top Left) -->
+            <div class="enemy-hud">
+                <div class="character-hud">
+                    <div class="hud-header">
+                        <div class="character-name" id="enemyName">Akatsuki Member</div>
+                        <div class="character-level" id="enemyLevel">Lv.5</div>
+                    </div>
+                    
+                    <div class="status-bars">
+                        <div class="status-bar">
+                            <div class="bar-label">HP</div>
+                            <div class="bar-container">
+                                <div class="hp-fill" id="enemyHealthBar" style="width: 100%"></div>
+                            </div>
+                            <div class="bar-text" id="enemyHealthText">120/120</div>
+                        </div>
+                    </div>
+                    
+                    <div class="character-info">
+                        <div class="element-badge fire" id="enemyElement">🔥 Fire</div>
+                    </div>
+                    
+                    <div class="stats-grid">
+                        <div class="stat">ATK: <span id="enemyAttack">40</span></div>
+                        <div class="stat">DEF: <span id="enemyDefense">30</span></div>
+                        <div class="stat">SPD: <span id="enemySpeed">25</span></div>
+                        <div class="stat">CRT: <span id="enemyCrit">12</span>%</div>
+                        <div class="stat">EVA: <span id="enemyEvasion">8</span>%</div>
+                        <div class="stat"></div>
+                    </div>
+                    
+                    <div class="status-effects" id="enemyStatus"></div>
+                </div>
+            </div>
+            
+            <!-- NEW: Stance Controls - Dropdown next to player HUD -->
+            <div class="stance-controls">
+                <button class="stance-button-main" onclick="toggleStanceMenu()" id="stanceMainButton">
+                    <span id="currentStanceIcon">⚖️</span>
+                    <span id="currentStanceText">Balanced</span>
+                    <span class="stance-dropdown-arrow">▼</span>
+                </button>
+                <div class="stance-dropdown-menu" id="stanceDropdown">
+                    <div class="stance-option current" onclick="changeStance('balanced')" data-stance="balanced" data-tooltip="Balanced Stance
+Equal offense and defense
+No stat penalties or bonuses
+Steady and reliable approach">
+                        <span>⚖️</span>
+                        <span>Balanced</span>
+                    </div>
+                    <div class="stance-option" onclick="changeStance('offensive')" data-stance="offensive" data-tooltip="Offensive Stance
++30% Attack, +10% Speed, +50% Crit
+-20% Defense
+High risk, high reward">
+                        <span>⚔️</span>
+                        <span>Offensive</span>
+                    </div>
+                    <div class="stance-option" onclick="changeStance('defensive')" data-stance="defensive" data-tooltip="Defensive Stance
++40% Defense, +20% Evasion
+-20% Attack, -10% Speed, -20% Crit
+Focus on survival">
+                        <span>🛡️</span>
+                        <span>Defensive</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- NEW: Combo Display -->
+            <div class="combo-display hidden" id="comboDisplay">
+                <div class="combo-number" id="comboNumber">0</div>
+                <div class="combo-text">COMBO</div>
+            </div>
+            
+            <!-- Player HUD (Bottom Right) -->
+            <div class="player-hud">
+                <div class="character-hud">
+                    <div class="hud-header">
+                        <div class="character-name" id="playerName">Xannis</div>
+                        <div class="character-level" id="playerLevel">Lv.5</div>
+                    </div>
+                    
+                    <div class="status-bars">
+                        <div class="status-bar">
+                            <div class="bar-label">HP</div>
+                            <div class="bar-container">
+                                <div class="hp-fill" id="playerHealthBar" style="width: 100%"></div>
+                            </div>
+                            <div class="bar-text" id="playerHealthText">150/150</div>
+                        </div>
+                        <div class="status-bar">
+                            <div class="bar-label">CP</div>
+                            <div class="bar-container">
+                                <div class="cp-fill" id="playerChakraBar" style="width: 100%"></div>
+                            </div>
+                            <div class="bar-text" id="playerChakraText">80/80</div>
+                        </div>
+                        <div class="status-bar">
+                            <div class="bar-label">WP</div>
+                            <div class="bar-container">
+                                <div class="wp-fill" id="playerWPBar" style="width: 100%"></div>
+                            </div>
+                            <div class="bar-text" id="playerWPText">60/60</div>
+                        </div>
+                    </div>
+                    
+                    <div class="character-info">
+                        <div class="element-badge wind" id="playerElement">🌪️ Wind</div>
+                        <div class="stance-badge" id="playerStance">⚖️ Balanced</div>
+                    </div>
+                    
+                    <div class="stats-grid">
+                        <div class="stat">ATK: <span id="playerAttack">35</span></div>
+                        <div class="stat">DEF: <span id="playerDefense">25</span></div>
+                        <div class="stat">SPD: <span id="playerSpeed">30</span></div>
+                        <div class="stat">CRT: <span id="playerCrit">15</span>%</div>
+                        <div class="stat">EVA: <span id="playerEvasion">10</span>%</div>
+                        <div class="stat"></div>
+                    </div>
+                    
+                    <div class="status-effects" id="playerStatus"></div>
+                </div>
+            </div>
+            
+            <!-- Inventory Panel (Hidden by default) -->
+            <div class="inventory-panel" id="inventoryPanel">
+                <div class="inventory-header">📦 Inventory</div>
+                <div class="inventory-grid">
+                    <!-- Items will be populated by updateInventoryDisplay() -->
+                </div>
+                <div class="inventory-header">⚔️ Equipment</div>
+                <div class="inventory-grid">
+                    <div class="gear-slot filled">📜 Wind Scroll</div>
+                    <div class="gear-slot">🎯 Ninja Headband</div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Battle Message Box -->
+        <div class="battle-message-container">
+            <div class="battle-message" id="battleMessage">
+                What will Xannis do?
+                <button class="message-toggle" id="messageToggle" onclick="toggleBattleLog()">▲</button>
+            </div>
+        </div>
+        
+        <!-- Battle Controls - Enhanced with Summoning system -->
+        <div class="battle-controls">
+            <button class="menu-button" onclick="performBasicAttack()" 
+                    data-tooltip="Taijutsu Strike
+A fundamental ninja combat technique
+Uses physical prowess and chakra flow
+Quick but lacks elemental power
+
+Damage: Based on ATK stat
+Can trigger critical hits
+Builds combo counter">
+                ⚔️ ATTACK
+            </button>
+            
+            <button class="menu-button" id="jutsuButton" onclick="toggleJutsuMenu()">
+                🌀 JUTSU
+                <div class="dropdown-menu" id="jutsuDropdown">
+                    <div class="dropdown-item" onclick="useJutsu('rasengan')" 
+                         data-tooltip="A spinning sphere of pure chakra
+Concentrates wind-nature energy into
+a devastating spiraling attack
+Mastered by the Fourth Hokage
+
+Cost: 20 CP | Critical bonus: +10%
+Combo bonus: +5 dmg per combo">
+                        <div class="jutsu-info">
+                            <div class="jutsu-name">Rasengan</div>
+                            <div class="jutsu-cost">Cost: 20 CP</div>
+                        </div>
+                        <div class="jutsu-element">🌪️</div>
+                    </div>
+                    <div class="dropdown-item" onclick="useJutsu('chidori')" 
+                         data-tooltip="Lightning Blade
+Kakashi's signature assassination technique
+Concentrates lightning chakra in the palm
+Creates a piercing thrust of pure electricity
+
+Cost: 25 CP | Critical bonus: +20%
+Combo bonus: +7 dmg per combo">
+                        <div class="jutsu-info">
+                            <div class="jutsu-name">Chidori</div>
+                            <div class="jutsu-cost">Cost: 25 CP</div>
+                        </div>
+                        <div class="jutsu-element">⚡</div>
+                    </div>
+                    <div class="dropdown-item" onclick="useJutsu('shadow_clone_barrage')" 
+                         data-tooltip="ULTIMATE JUTSU
+Summons multiple shadow clones for a devastating barrage
+Requires immense concentration and will power
+Massive damage with high critical chance
+
+Cost: 35 CP, 25 WP | ULTIMATE
+Combo bonus: +8 dmg per combo">
+                        <div class="jutsu-info">
+                            <div class="jutsu-name">Shadow Clone Barrage</div>
+                            <div class="jutsu-cost">Cost: 35 CP, 25 WP</div>
+                        </div>
+                        <div class="jutsu-element">🥷</div>
+                    </div>
+                    <div class="dropdown-item" onclick="useJutsu('sage_mode')" 
+                         data-tooltip="ULTIMATE TRANSFORMATION
+Channel natural energy to achieve sage mode
+Dramatically enhances all combat abilities
+Requires exceptional mental discipline
+
+Cost: 25 CP, 30 WP | ULTIMATE
+Buffs: ATK, DEF, SPD, CRIT, CP Regen">
+                        <div class="jutsu-info">
+                            <div class="jutsu-name">Sage Mode</div>
+                            <div class="jutsu-cost">Cost: 25 CP, 30 WP</div>
+                        </div>
+                        <div class="jutsu-element">🧘</div>
+                    </div>
+                    <div class="dropdown-item" onclick="useJutsu('poison_mist')" 
+                         data-tooltip="Toxic chakra forms a poisonous mist
+Deals moderate damage and poisons the enemy
+The toxins continue to damage over time
+Earth element technique
+
+Cost: 16 CP | Poison: 6 dmg x 4 turns
+Combo bonus: +3 dmg per combo">
+                        <div class="jutsu-info">
+                            <div class="jutsu-name">Poison Mist</div>
+                            <div class="jutsu-cost">Cost: 16 CP</div>
+                        </div>
+                        <div class="jutsu-element">☠️</div>
+                    </div>
+                    <div class="dropdown-item" onclick="useJutsu('medical_ninjutsu')" 
+                         data-tooltip="Advanced healing technique
+Instantly restores health and provides regeneration
+Medical chakra manipulation
+Requires significant chakra and will power
+
+Cost: 20 CP, 15 WP | Heal: 45 HP
+Regeneration: +12 HP x 3 turns">
+                        <div class="jutsu-info">
+                            <div class="jutsu-name">Medical Ninjutsu</div>
+                            <div class="jutsu-cost">Cost: 20 CP, 15 WP</div>
+                        </div>
+                        <div class="jutsu-element">🌿</div>
+                    </div>
+                </div>
+            </button>
+
+            <button class="menu-button locked" id="summonButton" onclick="toggleSummonMenu()" 
+                    data-tooltip="Summoning Techniques
+Summon powerful allies to fight beside you
+Requires high chakra and will power
+Stance determines available summons
+
+Current Stance: Balanced
+WP Thresholds: 50 (Legendary), 80 (Bijuu), 100 (Ultimate)
+Requirements: CP + WP + Stance Match">
+                🐸 SUMMON ▼
+                <div class="dropdown-menu" id="summonDropdown">
+                    <!-- Summon options populated by updateSummonMenu() -->
+                </div>
+            </button>
+
+            <button class="menu-button" id="specialButton" onclick="toggleSpecialMenu()" 
+                    data-tooltip="Special Will Power Abilities
+Advanced techniques requiring mental focus
+Ultimate jutsu and defensive abilities
+Transcendent combat techniques
+
+Abilities: Perfect Dodge, Counter Stance, Focus">
+                🔮 SPECIAL ▼
+                <div class="dropdown-menu" id="specialDropdown">
+                    <div class="dropdown-item" onclick="useJutsu('perfect_dodge')" 
+                         data-tooltip="Perfect Dodge Technique
+Transcendent evasion through pure will
+Completely avoid all attacks
+Requires intense mental concentration
+
+Cost: 20 WP | Perfect evasion x 2 turns
+Ultimate defensive technique">
+                        <div class="jutsu-info">
+                            <div class="jutsu-name">Perfect Dodge</div>
+                            <div class="jutsu-cost">Cost: 20 WP</div>
+                        </div>
+                        <div class="jutsu-element">👻</div>
+                    </div>
+                    <div class="dropdown-item" onclick="useJutsu('focused_strike')" 
+                         data-tooltip="Focused Strike Preparation
+Channel will power to guarantee critical hit
+Next attack will be a devastating strike
+Mental preparation enhances precision
+
+Cost: 5 CP, 12 WP | Next attack: CRIT
+Enhancement technique">
+                        <div class="jutsu-info">
+                            <div class="jutsu-name">Focused Strike</div>
+                            <div class="jutsu-cost">Cost: 5 CP, 12 WP</div>
+                        </div>
+                        <div class="jutsu-element">🎯</div>
+                    </div>
+                    <div class="dropdown-item" onclick="useJutsu('counter_stance')" 
+                         data-tooltip="Counter Attack Stance
+Defensive position ready to retaliate
+75% chance to counter when attacked
+Requires battle-hardened mental focus
+
+Cost: 8 CP, 16 WP | Counter chance: 75%
+Duration: 3 turns">
+                        <div class="jutsu-info">
+                            <div class="jutsu-name">Counter Stance</div>
+                            <div class="jutsu-cost">Cost: 8 CP, 16 WP</div>
+                        </div>
+                        <div class="jutsu-element">⚔️</div>
+                    </div>
+                    <div class="dropdown-item" onclick="useJutsu('iron_will')" 
+                         data-tooltip="Iron Will Defense
+Mental fortitude prevents status effects
+Immune to poison, burn, paralysis
+Enhanced defense through sheer willpower
+
+Cost: 10 CP, 15 WP | Status immunity
+Defense boost for 4 turns">
+                        <div class="jutsu-info">
+                            <div class="jutsu-name">Iron Will</div>
+                            <div class="jutsu-cost">Cost: 10 CP, 15 WP</div>
+                        </div>
+                        <div class="jutsu-element">🛡️</div>
+                    </div>
+                    <div class="dropdown-item" onclick="useJutsu('body_flicker')" 
+                         data-tooltip="Body Flicker Escape
+High-speed movement technique
+Escape danger while recovering health
+Brief perfect evasion + speed boost
+
+Cost: 15 CP, 20 WP | Heal: 25 HP
+Perfect dodge + speed boost">
+                        <div class="jutsu-info">
+                            <div class="jutsu-name">Body Flicker Escape</div>
+                            <div class="jutsu-cost">Cost: 15 CP, 20 WP</div>
+                        </div>
+                        <div class="jutsu-element">💨</div>
+                    </div>
+                </div>
+            </button>
+            
+            <button class="menu-button" onclick="toggleInventory()" 
+                    data-tooltip="Ninja Tools & Equipment
+Access scrolls, pills, and weapons
+Use consumables to restore health
+Equip gear for stat bonuses
+
+Inventory: Potions, Chakra Pills
+Equipment: Scrolls, Accessories">
+                📦 ITEM
+            </button>
+            
+            <button class="menu-button" onclick="useJutsu('battle_meditation')" 
+                    data-tooltip="Battle Meditation
+Focus the mind during combat
+Restores chakra and enhances critical rate
+Mental discipline in the heat of battle
+
+Cost: 18 WP | CP regen + crit boost
+Quick action - doesn't end turn
++5 WP bonus for meditation">
+                🧘 MEDITATE
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // Enhanced Game State for v47 with stance, combo, and enhanced inventory systems
+        let gameState = {
+            player: {
+                name: "Xannis",
+                level: 5,
+                element: "wind",
+                health: 150,
+                maxHealth: 150,
+                chakra: 80,
+                maxChakra: 80,
+                willPower: 100, // Increased to accommodate high-tier summons
+                maxWillPower: 100,
+                baseAttack: 35, // Base stats for stance calculations
+                baseDefense: 25,
+                baseSpeed: 30,
+                baseCritRate: 15,
+                baseEvasion: 10,
+                attack: 35, // Current modified stats
+                defense: 25,
+                speed: 30,
+                critRate: 15,
+                evasion: 10,
+                role: "balanced",
+                stance: "balanced", // Current stance
+                comboCount: 0, // Combo counter
+                statusEffects: [],
+                blockCharge: 0
+            },
+            enemy: {
+                name: "Akatsuki Member",
+                level: 5,
+                element: "fire",
+                health: 120,
+                maxHealth: 120,
+                attack: 40,
+                defense: 30,
+                speed: 25,
+                critRate: 12,
+                evasion: 8,
+                statusEffects: []
+            },
+            battle: {
+                turn: "player",
+                turnCount: 1,
+                inProgress: true,
+                logExpanded: false
+            },
+            // Enhanced inventory system
+            inventory: {
+                items: {
+                    health_potion: { count: 3, name: "🧪 Health Potion", description: "Restores 50 HP" },
+                    chakra_pill: { count: 2, name: "⚡ Chakra Pill", description: "Restores 30 CP" },
+                    willpower_tea: { count: 1, name: "🍵 Focus Tea", description: "Restores 25 WP" },
+                    antidote: { count: 2, name: "🌿 Antidote", description: "Cures poison/burn" },
+                    energy_drink: { count: 1, name: "⚡ Energy Drink", description: "Restores 20 HP, 15 CP" }
+                },
+                equipment: {
+                    wind_scroll: { equipped: true, name: "📜 Wind Scroll", bonus: { attack: 5 } },
+                    ninja_headband: { equipped: false, name: "🎯 Ninja Headband", bonus: { critRate: 8 } }
+                }
+            },
+            // NEW: Summoning system
+            summoning: {
+                activeSummon: null,
+                summonSlot: null
+            }
+        };
+
+        // NEW: Summoning database with stance requirements
+        const summonDatabase = {
+            // Defensive Stance Summons
+            turtle_guardian: {
+                name: "Turtle Guardian",
+                stance: "defensive",
+                chakraCost: 25,
+                willPowerCost: 40,
+                health: 80,
+                maxHealth: 80,
+                duration: 8,
+                damageAbsorption: 0.6, // Absorbs 60% of incoming damage
+                effects: [{ type: "defenseBuff", duration: 5 }],
+                description: "Massive turtle that absorbs damage and boosts defense",
+                sprite: "🐢"
+            },
+            stone_wall: {
+                name: "Stone Wall",
+                stance: "defensive", 
+                chakraCost: 20,
+                willPowerCost: 35,
+                health: 60,
+                maxHealth: 60,
+                duration: 6,
+                damageAbsorption: 0.8, // Absorbs 80% of damage but lower HP
+                effects: [{ type: "statusImmunity", duration: 4 }],
+                description: "Stone barrier that blocks most damage and prevents status effects",
+                sprite: "🗿"
+            },
+            
+            // Offensive Stance Summons
+            fire_phoenix: {
+                name: "Fire Phoenix",
+                stance: "offensive",
+                chakraCost: 30,
+                willPowerCost: 45,
+                health: 50,
+                maxHealth: 50,
+                duration: 6,
+                damageAbsorption: 0.3, // Low absorption, high offense
+                attackBonus: 20, // Adds damage to player attacks
+                effects: [{ type: "attackBuff", duration: 6 }],
+                description: "Fiery bird that enhances attacks and burns enemies",
+                sprite: "🔥🐦"
+            },
+            lightning_wolf: {
+                name: "Lightning Wolf",
+                stance: "offensive",
+                chakraCost: 25,
+                willPowerCost: 50,
+                health: 45,
+                maxHealth: 45,
+                duration: 7,
+                damageAbsorption: 0.25,
+                speedBonus: 15,
+                effects: [{ type: "speedBuff", duration: 6 }, { type: "critBuff", duration: 5 }],
+                description: "Swift wolf that increases speed and critical hit rate",
+                sprite: "⚡🐺"
+            },
+            
+            // Balanced Stance Summons  
+            healing_toad: {
+                name: "Healing Toad",
+                stance: "balanced",
+                chakraCost: 20,
+                willPowerCost: 35,
+                health: 40,
+                maxHealth: 40,
+                duration: 10,
+                damageAbsorption: 0.4,
+                healingPerTurn: 15,
+                effects: [{ type: "regeneration", duration: 8 }],
+                description: "Wise toad that provides healing and moderate protection",
+                sprite: "🐸"
+            },
+            shadow_clone: {
+                name: "Shadow Clone",
+                stance: "balanced",
+                chakraCost: 15,
+                willPowerCost: 30,
+                health: 35,
+                maxHealth: 35,
+                duration: 5,
+                damageAbsorption: 0.5,
+                comboBonus: 3, // Adds to combo damage
+                effects: [{ type: "chakraRegen", duration: 5 }],
+                description: "Loyal clone that assists in combat and restores chakra",
+                sprite: "👥"
+            },
+            
+            // HIGH-TIER SUMMONS - Legendary creatures with massive WP requirements
+            
+            // Tier 1: 50 WP Threshold
+            gamabunta: {
+                name: "Gamabunta (Frog Boss)",
+                stance: "balanced",
+                chakraCost: 40,
+                willPowerCost: 50,
+                health: 120,
+                maxHealth: 120,
+                duration: 12,
+                damageAbsorption: 0.7,
+                attackBonus: 25,
+                healingPerTurn: 20,
+                effects: [
+                    { type: "attackBuff", duration: 10 },
+                    { type: "defenseBuff", duration: 10 },
+                    { type: "regeneration", duration: 10 }
+                ],
+                description: "Chief of the toads, massive power and versatility",
+                sprite: "🐸👑",
+                tier: "legendary"
+            },
+            
+            // Tier 2: 80 WP Threshold  
+            three_tails: {
+                name: "Three-Tails (Isobu)",
+                stance: "defensive", 
+                chakraCost: 60,
+                willPowerCost: 80,
+                health: 200,
+                maxHealth: 200,
+                duration: 15,
+                damageAbsorption: 0.85,
+                effects: [
+                    { type: "defenseBuff", duration: 15 },
+                    { type: "statusImmunity", duration: 12 },
+                    { type: "regeneration", duration: 15 },
+                    { type: "chakraRegen", duration: 10 }
+                ],
+                description: "Tailed Beast of immense defensive power, near-invulnerability",
+                sprite: "🦀🔵",
+                tier: "bijuu"
+            },
+            
+            eight_tails: {
+                name: "Eight-Tails (Gyuki)",
+                stance: "offensive",
+                chakraCost: 60, 
+                willPowerCost: 80,
+                health: 180,
+                maxHealth: 180,
+                duration: 12,
+                damageAbsorption: 0.6,
+                attackBonus: 40,
+                speedBonus: 20,
+                effects: [
+                    { type: "attackBuff", duration: 12 },
+                    { type: "speedBuff", duration: 12 },
+                    { type: "critBuff", duration: 10 }
+                ],
+                description: "Tailed Beast of devastating offensive capability",
+                sprite: "🐙⚡",
+                tier: "bijuu"
+            },
+            
+            // Tier 3: 100 WP Threshold - Ultimate Power
+            nine_tails: {
+                name: "Nine-Tails (Kurama)",
+                stance: "offensive",
+                chakraCost: 80,
+                willPowerCost: 100,
+                health: 300,
+                maxHealth: 300,
+                duration: 20,
+                damageAbsorption: 0.8,
+                attackBonus: 60,
+                speedBonus: 30,
+                healingPerTurn: 25,
+                comboBonus: 10,
+                effects: [
+                    { type: "attackBuff", duration: 20 },
+                    { type: "speedBuff", duration: 20 },
+                    { type: "critBuff", duration: 20 },
+                    { type: "regeneration", duration: 20 },
+                    { type: "chakraRegen", duration: 15 }
+                ],
+                description: "The ultimate tailed beast - overwhelming power in all aspects",
+                sprite: "🦊🔥",
+                tier: "ultimate"
+            },
+            
+            ten_tails: {
+                name: "Ten-Tails (Juubi)",
+                stance: "balanced",
+                chakraCost: 90,
+                willPowerCost: 100,
+                health: 400,
+                maxHealth: 400,
+                duration: 25,
+                damageAbsorption: 0.9,
+                attackBonus: 50,
+                speedBonus: 25,
+                healingPerTurn: 30,
+                comboBonus: 15,
+                effects: [
+                    { type: "attackBuff", duration: 25 },
+                    { type: "defenseBuff", duration: 25 },
+                    { type: "speedBuff", duration: 25 },
+                    { type: "critBuff", duration: 25 },
+                    { type: "statusImmunity", duration: 25 },
+                    { type: "regeneration", duration: 25 },
+                    { type: "chakraRegen", duration: 20 }
+                ],
+                description: "The primordial chakra beast - absolute power incarnate",
+                sprite: "👁️🌳",
+                tier: "godlike"
+            }
+        };
+
+        // Stance modifiers system
+        const stanceModifiers = {
+            balanced: { 
+                attack: 1.0, 
+                defense: 1.0, 
+                speed: 1.0, 
+                crit: 1.0, 
+                evasion: 1.0,
+                icon: "⚖️",
+                name: "Balanced"
+            },
+            offensive: { 
+                attack: 1.3, 
+                defense: 0.8, 
+                speed: 1.1, 
+                crit: 1.5, 
+                evasion: 1.0,
+                icon: "⚔️",
+                name: "Offensive"
+            },
+            defensive: { 
+                attack: 0.8, 
+                defense: 1.4, 
+                speed: 0.9, 
+                crit: 0.8, 
+                evasion: 1.2,
+                icon: "🛡️",
+                name: "Defensive"
+            }
+        };
+
+        // Enhanced Status effects database with all types
+        const statusEffects = {
+            burn: { 
+                name: "🔥 Burn", 
+                damagePerTurn: 8, 
+                color: "#ff5722",
+                tooltip: "Flames sear the body, dealing 8 damage per turn for"
+            },
+            poison: { 
+                name: "☠️ Poison", 
+                damagePerTurn: 6, 
+                color: "#4caf50",
+                tooltip: "Toxic chakra corrupts the system, dealing 6 damage per turn for"
+            },
+            paralysis: { 
+                name: "⚡ Paralyzed", 
+                missChance: 50, 
+                color: "#ffeb3b",
+                tooltip: "Lightning chakra disrupts movement, 50% chance to miss attacks for"
+            },
+            slow: { 
+                name: "❄️ Slow", 
+                speedReduction: 50, 
+                color: "#2196f3",
+                tooltip: "Heavy water pressure reduces speed by 50% for"
+            },
+            // NEW: Buff effects
+            attackBuff: { 
+                name: "💪 Attack Boost", 
+                attackBonus: 15, 
+                color: "#ff6b35",
+                tooltip: "Chakra enhancement increases attack power by 15 for"
+            },
+            defenseBuff: { 
+                name: "🛡️ Defense Boost", 
+                defenseBonus: 12, 
+                color: "#795548",
+                tooltip: "Hardened chakra increases defense by 12 for"
+            },
+            speedBuff: { 
+                name: "⚡ Speed Boost", 
+                speedBonus: 10, 
+                color: "#ffeb3b",
+                tooltip: "Lightning chakra increases speed by 10 for"
+            },
+            critBuff: { 
+                name: "🎯 Focus", 
+                critBonus: 20, 
+                color: "#9c27b0",
+                tooltip: "Enhanced focus increases critical hit rate by 20% for"
+            },
+            // NEW: Debuff effects
+            attackDebuff: { 
+                name: "💔 Weakened", 
+                attackReduction: 12, 
+                color: "#f44336",
+                tooltip: "Weakening chakra reduces attack power by 12 for"
+            },
+            defenseDebuff: { 
+                name: "🔓 Vulnerable", 
+                defenseReduction: 10, 
+                color: "#e91e63",
+                tooltip: "Exposed weak points reduce defense by 10 for"
+            },
+            // NEW: Special effects
+            regeneration: { 
+                name: "🌿 Regeneration", 
+                healPerTurn: 12, 
+                color: "#4caf50",
+                tooltip: "Medical chakra restores 12 health per turn for"
+            },
+            chakraRegen: { 
+                name: "🔵 Chakra Flow", 
+                chakraPerTurn: 8, 
+                color: "#2196f3",
+                tooltip: "Enhanced chakra flow restores 8 CP per turn for"
+            },
+            // NEW: WP-based special effects
+            perfectEvasion: {
+                name: "👻 Perfect Dodge",
+                perfectDodge: true,
+                color: "#9c27b0",
+                tooltip: "Transcendent evasion - completely avoid all attacks for"
+            },
+            statusImmunity: {
+                name: "🛡️ Iron Will",
+                immuneToStatus: true,
+                color: "#795548",
+                tooltip: "Mental fortitude prevents all status effects for"
+            },
+            nextAttackCrit: {
+                name: "🎯 Focused Strike",
+                guaranteedCrit: true,
+                color: "#ff9800",
+                tooltip: "Next attack is guaranteed critical hit, lasts"
+            },
+            counterAttack: {
+                name: "⚔️ Counter Stance",
+                counterChance: 75,
+                color: "#f44336",
+                tooltip: "75% chance to counter-attack when hit for"
+            },
+            sageMode: {
+                name: "🧘 Sage Mode",
+                sageBonus: true,
+                color: "#ff6b35",
+                tooltip: "Sage chakra enhances all abilities for"
+            }
+        };
+
+        // Enhanced Jutsu database with new status effect jutsu
+        const jutsuDatabase = {
+            // Original jutsu
+            rasengan: {
+                name: "Rasengan",
+                element: "wind",
+                damage: 45,
+                chakraCost: 20,
+                critBonus: 10,
+                comboBonus: 5,
+                effects: []
+            },
+            fireball: {
+                name: "Fireball Jutsu",
+                element: "fire",
+                damage: 35,
+                chakraCost: 15,
+                comboBonus: 3,
+                effects: [{ type: "burn", duration: 3 }]
+            },
+            chidori: {
+                name: "Chidori",
+                element: "lightning",
+                damage: 50,
+                chakraCost: 25,
+                critBonus: 20,
+                comboBonus: 7,
+                effects: [{ type: "paralysis", duration: 2 }]
+            },
+            water_dragon: {
+                name: "Water Dragon",
+                element: "water",
+                damage: 40,
+                chakraCost: 18,
+                comboBonus: 4,
+                effects: [{ type: "slow", duration: 3 }]
+            },
+            // NEW: Poison jutsu
+            poison_mist: {
+                name: "Poison Mist",
+                element: "earth",
+                damage: 25,
+                chakraCost: 16,
+                comboBonus: 3,
+                effects: [{ type: "poison", duration: 4 }]
+            },
+            venom_strike: {
+                name: "Venom Strike",
+                element: "earth",
+                damage: 32,
+                chakraCost: 14,
+                comboBonus: 2,
+                effects: [{ type: "poison", duration: 3 }]
+            },
+            // NEW: Buff jutsu
+            chakra_boost: {
+                name: "Chakra Enhancement",
+                element: "neutral",
+                damage: 0,
+                chakraCost: 12,
+                willPowerCost: 10,
+                comboBonus: 0,
+                selfTarget: true,
+                effects: [
+                    { type: "attackBuff", duration: 4 },
+                    { type: "chakraRegen", duration: 3 }
+                ]
+            },
+            iron_skin: {
+                name: "Iron Skin Jutsu",
+                element: "earth",
+                damage: 0,
+                chakraCost: 15,
+                willPowerCost: 8,
+                comboBonus: 0,
+                selfTarget: true,
+                effects: [
+                    { type: "defenseBuff", duration: 5 },
+                    { type: "regeneration", duration: 3 }
+                ]
+            },
+            lightning_reflexes: {
+                name: "Lightning Reflexes",
+                element: "lightning",
+                damage: 0,
+                chakraCost: 10,
+                willPowerCost: 12,
+                comboBonus: 0,
+                selfTarget: true,
+                effects: [
+                    { type: "speedBuff", duration: 4 },
+                    { type: "critBuff", duration: 3 }
+                ]
+            },
+            // NEW: Debuff jutsu
+            weakness_seal: {
+                name: "Weakness Seal",
+                element: "neutral",
+                damage: 15,
+                chakraCost: 18,
+                comboBonus: 2,
+                effects: [
+                    { type: "attackDebuff", duration: 4 },
+                    { type: "defenseDebuff", duration: 3 }
+                ]
+            },
+            // NEW: Healing jutsu
+            medical_ninjutsu: {
+                name: "Medical Ninjutsu",
+                element: "neutral",
+                damage: 0,
+                chakraCost: 20,
+                willPowerCost: 15,
+                comboBonus: 0,
+                selfTarget: true,
+                healing: 45,
+                effects: [{ type: "regeneration", duration: 3 }]
+            },
+            // NEW: Ultimate jutsu that require high WP
+            shadow_clone_barrage: {
+                name: "Shadow Clone Barrage",
+                element: "neutral",
+                damage: 80,
+                chakraCost: 35,
+                willPowerCost: 25,
+                comboBonus: 8,
+                critBonus: 15,
+                effects: [],
+                isUltimate: true
+            },
+            sage_mode: {
+                name: "Sage Mode",
+                element: "neutral",
+                damage: 0,
+                chakraCost: 25,
+                willPowerCost: 30,
+                comboBonus: 0,
+                selfTarget: true,
+                effects: [
+                    { type: "attackBuff", duration: 6 },
+                    { type: "defenseBuff", duration: 6 },
+                    { type: "speedBuff", duration: 6 },
+                    { type: "critBuff", duration: 6 },
+                    { type: "chakraRegen", duration: 5 }
+                ],
+                isUltimate: true
+            },
+            // NEW: WP-based defensive abilities
+            perfect_dodge: {
+                name: "Perfect Dodge",
+                element: "neutral",
+                damage: 0,
+                chakraCost: 0,
+                willPowerCost: 20,
+                comboBonus: 0,
+                selfTarget: true,
+                effects: [{ type: "perfectEvasion", duration: 2 }],
+                isDefensive: true
+            },
+            iron_will: {
+                name: "Iron Will",
+                element: "neutral",
+                damage: 0,
+                chakraCost: 10,
+                willPowerCost: 15,
+                comboBonus: 0,
+                selfTarget: true,
+                effects: [
+                    { type: "statusImmunity", duration: 4 },
+                    { type: "defenseBuff", duration: 4 }
+                ],
+                isDefensive: true
+            },
+            // NEW: WP-based enhancement abilities
+            focused_strike: {
+                name: "Focused Strike",
+                element: "neutral",
+                damage: 0,
+                chakraCost: 5,
+                willPowerCost: 12,
+                comboBonus: 0,
+                selfTarget: true,
+                effects: [{ type: "nextAttackCrit", duration: 1 }],
+                isEnhancement: true
+            },
+            battle_meditation: {
+                name: "Battle Meditation",
+                element: "neutral",
+                damage: 0,
+                chakraCost: 0,
+                willPowerCost: 18,
+                comboBonus: 0,
+                selfTarget: true,
+                effects: [
+                    { type: "chakraRegen", duration: 4 },
+                    { type: "critBuff", duration: 3 }
+                ],
+                isEnhancement: true
+            },
+            // NEW: WP-based counter abilities
+            counter_stance: {
+                name: "Counter Stance",
+                element: "neutral",
+                damage: 0,
+                chakraCost: 8,
+                willPowerCost: 16,
+                comboBonus: 0,
+                selfTarget: true,
+                effects: [{ type: "counterAttack", duration: 3 }],
+                isCounter: true
+            },
+            // NEW: WP-based escape ability
+            body_flicker: {
+                name: "Body Flicker Escape",
+                element: "neutral",
+                damage: 0,
+                chakraCost: 15,
+                willPowerCost: 20,
+                comboBonus: 0,
+                selfTarget: true,
+                effects: [
+                    { type: "speedBuff", duration: 3 },
+                    { type: "perfectEvasion", duration: 1 }
+                ],
+                healing: 25, // Minor healing from escaping danger
+                isEscape: true
+            }
+        };
+
+        // Battle log history
+        let battleLog = ["What will Xannis do?"];
+
+        // NEW: Enhanced WP gain system with tier notifications
+        function gainWillPower(amount, reason) {
+            const player = gameState.player;
+            const oldWP = player.willPower;
+            player.willPower = Math.min(player.maxWillPower, player.willPower + amount);
+            const gained = player.willPower - oldWP;
+            
+            if (gained > 0) {
+                addToBattleLog(`+${gained} WP: ${reason}`);
+                // Visual feedback for WP gain
+                showFloatingWP(gained);
+                
+                // Check for tier threshold notifications
+                checkSummonThresholds(oldWP, player.willPower);
+            }
+        }
+
+        // NEW: Check if player crossed important WP thresholds
+        function checkSummonThresholds(oldWP, newWP) {
+            const thresholds = [
+                { wp: 50, message: "🐸 LEGENDARY SUMMONS AVAILABLE! (50+ WP)", tier: "legendary" },
+                { wp: 80, message: "🦀 TAILED BEAST SUMMONS AVAILABLE! (80+ WP)", tier: "bijuu" },
+                { wp: 100, message: "🦊 ULTIMATE SUMMONS AVAILABLE! (100 WP)", tier: "ultimate" }
+            ];
+            
+            thresholds.forEach(threshold => {
+                if (oldWP < threshold.wp && newWP >= threshold.wp) {
+                    // Special notification for crossing threshold
+                    addToBattleLog(`✨ ${threshold.message}`);
+                    updateBattleMessage(`🌟 ${threshold.message}`);
+                    
+                    // Visual celebration effect
+                    showThresholdEffect(threshold.tier);
+                }
+            });
+        }
+
+        // NEW: Visual effect for crossing WP thresholds
+        function showThresholdEffect(tier) {
+            const container = document.getElementById('playerSpriteContainer');
+            const effectText = document.createElement('div');
+            effectText.className = 'floating-damage';
+            effectText.textContent = tier.toUpperCase() + ' UNLOCKED!';
+            
+            // Different colors for different tiers
+            switch(tier) {
+                case 'legendary':
+                    effectText.style.color = '#ffd700';
+                    break;
+                case 'bijuu':
+                    effectText.style.color = '#ff6b35';
+                    break;
+                case 'ultimate':
+                    effectText.style.color = '#e91e63';
+                    break;
+            }
+            
+            effectText.style.fontSize = '16px';
+            effectText.style.fontWeight = 'bold';
+            effectText.style.left = '50%';
+            effectText.style.top = '0%';
+            effectText.style.textShadow = '2px 2px 4px rgba(0,0,0,0.8)';
+            
+            container.appendChild(effectText);
+            
+            setTimeout(() => {
+                effectText.remove();
+            }, 3000);
+        }
+
+        // NEW: Visual feedback for WP gain
+        function showFloatingWP(amount) {
+            const container = document.getElementById('playerSpriteContainer');
+            const wpText = document.createElement('div');
+            wpText.className = 'floating-damage';
+            wpText.textContent = `+${amount} WP`;
+            wpText.style.color = '#9c27b0'; // Purple for WP
+            wpText.style.fontSize = '18px';
+            wpText.style.left = '70%';
+            wpText.style.top = '10%';
+            
+            container.appendChild(wpText);
+            
+            setTimeout(() => {
+                wpText.remove();
+            }, 2000);
+        }
+
+        // NEW: Summoning functions
+        function useSummon(summonKey) {
+            if (gameState.battle.turn !== "player") return;
+            
+            const summon = summonDatabase[summonKey];
+            const player = gameState.player;
+            
+            // Check requirements
+            if (player.chakra < summon.chakraCost) {
+                updateBattleMessage("Not enough chakra for summoning!");
+                return;
+            }
+            
+            if (player.willPower < summon.willPowerCost) {
+                updateBattleMessage("Not enough will power for summoning!");
+                return;
+            }
+            
+            if (player.stance !== summon.stance) {
+                updateBattleMessage(`Wrong stance! Need ${summon.stance} stance for this summon.`);
+                return;
+            }
+            
+            // Dismiss existing summon if any
+            if (gameState.summoning.activeSummon) {
+                dismissSummon();
+            }
+            
+            // Consume resources
+            player.chakra -= summon.chakraCost;
+            player.willPower -= summon.willPowerCost;
+            
+            // Create summon
+            gameState.summoning.activeSummon = {
+                ...summon,
+                currentHealth: summon.health,
+                remainingDuration: summon.duration
+            };
+            
+            // Apply summon effects to player
+            summon.effects.forEach(effect => {
+                applyStatusEffect(player, effect);
+            });
+            
+            // Update UI
+            showSummonSprite();
+            updateSummonDisplay();
+            
+            updateBattleMessage(`${summon.name} summoned!`);
+            addToBattleLog(`Xannis summons ${summon.name}!`);
+            
+            hideAllDropdowns();
+            endPlayerTurn();
+        }
+
+        // NEW: Show summon sprite with tier-specific effects
+        function showSummonSprite() {
+            const summon = gameState.summoning.activeSummon;
+            if (!summon) return;
+            
+            const summonArea = document.getElementById('summonArea');
+            const summonSprite = document.getElementById('summonSprite');
+            const summonTooltip = document.getElementById('summonTooltip');
+            
+            summonArea.style.display = 'block';
+            summonSprite.textContent = summon.sprite;
+            
+            // Apply tier-specific styling
+            summonSprite.className = ''; // Reset classes
+            if (summon.tier) {
+                summonSprite.classList.add(`summon-tier-${summon.tier}`);
+            }
+            
+            // Set background based on tier or random for basic summons
+            if (summon.tier === 'godlike') {
+                summonSprite.style.background = 'linear-gradient(135deg, #9c27b0, #e91e63, #ff6b35)';
+            } else if (summon.tier === 'ultimate') {
+                summonSprite.style.background = 'linear-gradient(135deg, #e91e63, #ff6b35)';
+            } else if (summon.tier === 'bijuu') {
+                summonSprite.style.background = 'linear-gradient(135deg, #ff6b35, #ffd700)';
+            } else if (summon.tier === 'legendary') {
+                summonSprite.style.background = 'linear-gradient(135deg, #ffd700, #ffed4e)';
+            } else {
+                summonSprite.style.background = getRandomGradient();
+            }
+            
+            // Update tooltip with enhanced information
+            const tierDisplay = summon.tier ? `<br><strong>Tier:</strong> ${summon.tier.charAt(0).toUpperCase() + summon.tier.slice(1)}` : '';
+            const bonusText = [];
+            if (summon.attackBonus) bonusText.push(`ATK +${summon.attackBonus}`);
+            if (summon.speedBonus) bonusText.push(`SPD +${summon.speedBonus}`);
+            if (summon.healingPerTurn) bonusText.push(`Heal +${summon.healingPerTurn}/turn`);
+            if (summon.comboBonus) bonusText.push(`Combo +${summon.comboBonus}`);
+            
+            summonTooltip.innerHTML = `
+                <strong>${summon.name}</strong>${tierDisplay}<br>
+                HP: ${summon.currentHealth}/${summon.health}<br>
+                Duration: ${summon.remainingDuration} turns<br>
+                Absorbs: ${Math.floor(summon.damageAbsorption * 100)}% damage
+                ${bonusText.length > 0 ? '<br>Bonuses: ' + bonusText.join(', ') : ''}
+            `;
+        }
+
+        // NEW: Update summon display with enhanced information
+        function updateSummonDisplay() {
+            const summon = gameState.summoning.activeSummon;
+            if (!summon) return;
+            
+            const hpFill = document.getElementById('summonHpFill');
+            const hpPercent = (summon.currentHealth / summon.health) * 100;
+            hpFill.style.width = hpPercent + '%';
+            
+            // Change HP bar color based on health percentage
+            if (hpPercent > 60) {
+                hpFill.style.background = 'linear-gradient(90deg, #4caf50, #81c784)';
+            } else if (hpPercent > 30) {
+                hpFill.style.background = 'linear-gradient(90deg, #ff9800, #ffb74d)';
+            } else {
+                hpFill.style.background = 'linear-gradient(90deg, #f44336, #ef5350)';
+            }
+            
+            // Update tooltip with all relevant information
+            const tooltip = document.getElementById('summonTooltip');
+            const tierDisplay = summon.tier ? `<br><strong>Tier:</strong> ${summon.tier.charAt(0).toUpperCase() + summon.tier.slice(1)}` : '';
+            const bonusText = [];
+            if (summon.attackBonus) bonusText.push(`ATK +${summon.attackBonus}`);
+            if (summon.speedBonus) bonusText.push(`SPD +${summon.speedBonus}`);
+            if (summon.healingPerTurn) bonusText.push(`Heal +${summon.healingPerTurn}/turn`);
+            if (summon.comboBonus) bonusText.push(`Combo +${summon.comboBonus}`);
+            
+            tooltip.innerHTML = `
+                <strong>${summon.name}</strong>${tierDisplay}<br>
+                HP: ${summon.currentHealth}/${summon.health}<br>
+                Duration: ${summon.remainingDuration} turns<br>
+                Absorbs: ${Math.floor(summon.damageAbsorption * 100)}% damage
+                ${bonusText.length > 0 ? '<br>Bonuses: ' + bonusText.join(', ') : ''}
+            `;
+        }
+
+        // NEW: Dismiss summon
+        function dismissSummon() {
+            gameState.summoning.activeSummon = null;
+            document.getElementById('summonArea').style.display = 'none';
+            addToBattleLog("Summon dismissed.");
+        }
+
+        // NEW: Process summon damage absorption
+        function processSummonDamage(incomingDamage) {
+            const summon = gameState.summoning.activeSummon;
+            if (!summon) return incomingDamage;
+            
+            const absorbedDamage = Math.floor(incomingDamage * summon.damageAbsorption);
+            const playerDamage = incomingDamage - absorbedDamage;
+            
+            // Damage the summon
+            summon.currentHealth -= absorbedDamage;
+            
+            if (summon.currentHealth <= 0) {
+                addToBattleLog(`${summon.name} is defeated!`);
+                dismissSummon();
+            } else {
+                addToBattleLog(`${summon.name} absorbs ${absorbedDamage} damage!`);
+                updateSummonDisplay();
+            }
+            
+            return Math.max(0, playerDamage);
+        }
+
+        // NEW: Process summon turn effects
+        function processSummonTurn() {
+            const summon = gameState.summoning.activeSummon;
+            if (!summon) return;
+            
+            // Reduce duration
+            summon.remainingDuration--;
+            
+            // Apply summon bonuses
+            if (summon.healingPerTurn) {
+                const healAmount = Math.min(summon.healingPerTurn, gameState.player.maxHealth - gameState.player.health);
+                gameState.player.health += healAmount;
+                addToBattleLog(`${summon.name} heals you for ${healAmount} HP!`);
+                showFloatingDamage(healAmount, false, true, true);
+            }
+            
+            // Check if summon expires
+            if (summon.remainingDuration <= 0) {
+                addToBattleLog(`${summon.name} duration expires.`);
+                dismissSummon();
+            } else {
+                updateSummonDisplay();
+            }
+        }
+
+        // NEW: Get random gradient for summon sprites
+        function getRandomGradient() {
+            const gradients = [
+                'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
+                'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
+                'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)',
+                'linear-gradient(135deg, #fa709a 0%, #fee140 100%)'
+            ];
+            return gradients[Math.floor(Math.random() * gradients.length)];
+        }
+
+        // NEW: Update summon menu based on stance and resources with tier indicators
+        function updateSummonMenu() {
+            const player = gameState.player;
+            const summonDropdown = document.getElementById('summonDropdown');
+            const summonButton = document.getElementById('summonButton');
+            
+            let availableSummons = [];
+            let readySummons = 0;
+            let highTierReady = false;
+            
+            // Get summons for current stance
+            Object.keys(summonDatabase).forEach(summonKey => {
+                const summon = summonDatabase[summonKey];
+                if (summon.stance === player.stance) {
+                    availableSummons.push({key: summonKey, data: summon});
+                    
+                    // Check if requirements are met
+                    if (player.chakra >= summon.chakraCost && player.willPower >= summon.willPowerCost) {
+                        readySummons++;
+                        // Check if any high-tier summons are ready
+                        if (summon.tier && (summon.tier === 'legendary' || summon.tier === 'bijuu' || summon.tier === 'ultimate' || summon.tier === 'godlike')) {
+                            highTierReady = true;
+                        }
+                    }
+                }
+            });
+            
+            // Update button state with special effects for high-tier
+            if (availableSummons.length === 0) {
+                summonButton.classList.add('locked');
+                summonButton.classList.remove('ready', 'high-tier');
+            } else if (readySummons > 0) {
+                summonButton.classList.remove('locked');
+                summonButton.classList.add('ready');
+                
+                // Add high-tier class for special animation
+                if (highTierReady) {
+                    summonButton.classList.add('high-tier');
+                } else {
+                    summonButton.classList.remove('high-tier');
+                }
+                
+                // Add ready badge with tier indication
+                if (!summonButton.querySelector('.ready-badge')) {
+                    const badge = document.createElement('div');
+                    badge.className = 'ready-badge';
+                    badge.textContent = highTierReady ? '★' : '✓';
+                    summonButton.appendChild(badge);
+                }
+            } else {
+                summonButton.classList.remove('locked', 'ready', 'high-tier');
+                const badge = summonButton.querySelector('.ready-badge');
+                if (badge) badge.remove();
+            }
+            
+            // Sort summons by WP cost (lowest first)
+            availableSummons.sort((a, b) => a.data.willPowerCost - b.data.willPowerCost);
+            
+            // Update dropdown content with tier styling
+            summonDropdown.innerHTML = '';
+            availableSummons.forEach(({key, data}) => {
+                const canUse = player.chakra >= data.chakraCost && player.willPower >= data.willPowerCost;
+                let itemClass = canUse ? 'dropdown-item' : 'dropdown-item locked';
+                
+                // Add tier class for visual styling
+                if (data.tier) {
+                    itemClass += ` summon-${data.tier}`;
+                }
+                
+                // Create WP threshold indicator
+                const wpThreshold = data.willPowerCost >= 80 ? 'tier-ultimate' : 
+                                  data.willPowerCost >= 50 ? 'tier-legendary' : 
+                                  data.willPowerCost >= 35 ? 'tier-bijuu' : '';
+                
+                const wpIndicator = wpThreshold ? `<div class="wp-threshold ${wpThreshold}">${data.willPowerCost} WP</div>` : '';
+                
+                // Enhanced tooltip with tier information
+                const tierText = data.tier ? `\nTier: ${data.tier.charAt(0).toUpperCase() + data.tier.slice(1)}` : '';
+                const thresholdText = data.willPowerCost >= 50 ? `\n⚠️ HIGH WP REQUIREMENT` : '';
+                
+                summonDropdown.innerHTML += `
+                    <div class="${itemClass}" onclick="useSummon('${key}')" 
+                         data-tooltip="${data.description}${tierText}
+Stance Required: ${data.stance.charAt(0).toUpperCase() + data.stance.slice(1)}
+Duration: ${data.duration} turns
+Damage Absorption: ${Math.floor(data.damageAbsorption * 100)}%
+HP: ${data.health}${thresholdText}
+
+Cost: ${data.chakraCost} CP, ${data.willPowerCost} WP">
+                        ${wpIndicator}
+                        <div class="jutsu-info">
+                            <div class="jutsu-name">${data.name}</div>
+                            <div class="jutsu-cost">Cost: ${data.chakraCost} CP, ${data.willPowerCost} WP</div>
+                        </div>
+                        <div class="jutsu-element">${data.sprite}</div>
+                    </div>
+                `;
+            });
+            
+            if (availableSummons.length === 0) {
+                summonDropdown.innerHTML = `
+                    <div class="dropdown-item locked">
+                        <div class="jutsu-info">
+                            <div class="jutsu-name">No Summons Available</div>
+                            <div class="jutsu-cost">Change stance to unlock summons</div>
+                        </div>
+                        <div class="jutsu-element">❌</div>
+                    </div>
+                `;
+            }
+        }
+
+        // NEW: Toggle summon menu
+        function toggleSummonMenu() {
+            updateSummonMenu(); // Update before showing
+            
+            const dropdown = document.getElementById('summonDropdown');
+            const isActive = dropdown.classList.contains('active');
+            
+            hideAllDropdowns();
+            
+            if (!isActive) {
+                dropdown.classList.add('active');
+            }
+        }
+        function useItem(itemKey) {
+            if (gameState.battle.turn !== "player") return;
+            
+            const item = gameState.inventory.items[itemKey];
+            if (!item || item.count <= 0) {
+                updateBattleMessage("You don't have that item!");
+                return;
+            }
+            
+            const player = gameState.player;
+            let message = "";
+            
+            switch(itemKey) {
+                case 'health_potion':
+                    const healthRestored = Math.min(50, player.maxHealth - player.health);
+                    player.health += healthRestored;
+                    message = `Health Potion restored ${healthRestored} HP!`;
+                    showFloatingDamage(healthRestored, false, true, true); // Green healing numbers
+                    break;
+                    
+                case 'chakra_pill':
+                    const chakraRestored = Math.min(30, player.maxChakra - player.chakra);
+                    player.chakra += chakraRestored;
+                    message = `Chakra Pill restored ${chakraRestored} CP!`;
+                    // NEW: +5 WP for chakra restoration
+                    if (chakraRestored >= 15) {
+                        gainWillPower(5, "Chakra Restoration");
+                    }
+                    break;
+                    
+                case 'willpower_tea':
+                    const wpRestored = Math.min(25, player.maxWillPower - player.willPower);
+                    player.willPower += wpRestored;
+                    message = `Focus Tea restored ${wpRestored} WP!`;
+                    break;
+                    
+                case 'antidote':
+                    let curedEffects = [];
+                    player.statusEffects = player.statusEffects.filter(effect => {
+                        if (effect.type === 'poison' || effect.type === 'burn') {
+                            curedEffects.push(statusEffects[effect.type].name);
+                            return false;
+                        }
+                        return true;
+                    });
+                    message = curedEffects.length > 0 ? 
+                        `Antidote cured: ${curedEffects.join(', ')}!` : 
+                        "Antidote used but no poison/burn to cure.";
+                    break;
+                    
+                case 'energy_drink':
+                    const healthRest = Math.min(20, player.maxHealth - player.health);
+                    const chakraRest = Math.min(15, player.maxChakra - player.chakra);
+                    player.health += healthRest;
+                    player.chakra += chakraRest;
+                    message = `Energy Drink restored ${healthRest} HP and ${chakraRest} CP!`;
+                    showFloatingDamage(healthRest, false, true, true);
+                    break;
+            }
+            
+            // Consume item
+            item.count--;
+            
+            updateBattleMessage(message);
+            addToBattleLog(`Xannis used ${item.name}: ${message}`);
+            updateInventoryDisplay();
+            updateDisplay();
+            
+            // Using item ends turn
+            hideAllDropdowns();
+            document.getElementById('inventoryPanel').classList.remove('active');
+            endPlayerTurn();
+        }
+
+        // NEW: Update inventory display
+        function updateInventoryDisplay() {
+            const inventoryGrid = document.querySelector('.inventory-grid');
+            if (!inventoryGrid) return;
+            
+            const items = gameState.inventory.items;
+            let itemSlots = '';
+            
+            Object.keys(items).forEach(itemKey => {
+                const item = items[itemKey];
+                if (item.count > 0) {
+                    itemSlots += `
+                        <div class="item-slot filled" onclick="useItem('${itemKey}')" 
+                             data-tooltip="${item.description}
+Use during your turn to consume this item.
+
+Count: ${item.count}">
+                            ${item.name}
+                            <div style="font-size: 8px; color: #666;">x${item.count}</div>
+                        </div>
+                    `;
+                }
+            });
+            
+            // Fill empty slots
+            const itemCount = Object.values(items).filter(item => item.count > 0).length;
+            for (let i = itemCount; i < 6; i++) {
+                itemSlots += '<div class="item-slot">Empty</div>';
+            }
+            
+            inventoryGrid.innerHTML = itemSlots;
+        }
+
+        // Toggle stance dropdown menu
+        function toggleStanceMenu() {
+            const dropdown = document.getElementById('stanceDropdown');
+            const isActive = dropdown.classList.contains('active');
+            
+            // Close all other dropdowns first
+            hideAllDropdowns();
+            
+            if (!isActive) {
+                dropdown.classList.add('active');
+            }
+        }
+
+        // Stance change function
+        function changeStance(newStance) {
+            if (gameState.battle.turn !== "player") return;
+            
+            const player = gameState.player;
+            const oldStance = player.stance;
+            
+            if (oldStance === newStance) {
+                // Close dropdown if selecting same stance
+                hideAllDropdowns();
+                return;
+            }
+            
+            player.stance = newStance;
+            
+            // Apply stance modifiers to stats
+            applyStanceModifiers();
+            
+            // Update UI
+            updateStanceDisplay();
+            updateDisplay();
+            
+            const stanceData = stanceModifiers[newStance];
+            updateBattleMessage(`Stance changed to ${stanceData.name}!`);
+            addToBattleLog(`Xannis switches to ${stanceData.name} stance!`);
+            
+            // Close dropdown
+            hideAllDropdowns();
+            
+            // Changing stance ends turn
+            endPlayerTurn();
+        }
+
+        // Apply stance modifiers to player stats
+        function applyStanceModifiers() {
+            const player = gameState.player;
+            const modifiers = stanceModifiers[player.stance];
+            
+            // Recalculate stats based on base values and stance
+            player.attack = Math.floor(player.baseAttack * modifiers.attack);
+            player.defense = Math.floor(player.baseDefense * modifiers.defense);
+            player.speed = Math.floor(player.baseSpeed * modifiers.speed);
+            player.critRate = Math.floor(player.baseCritRate * modifiers.crit);
+            player.evasion = Math.floor(player.baseEvasion * modifiers.evasion);
+        }
+
+        // Update stance display in UI
+        function updateStanceDisplay() {
+            const player = gameState.player;
+            const stanceData = stanceModifiers[player.stance];
+            
+            // Update stance badge in player HUD
+            document.getElementById('playerStance').textContent = `${stanceData.icon} ${stanceData.name}`;
+            
+            // Update main stance button
+            document.getElementById('currentStanceIcon').textContent = stanceData.icon;
+            document.getElementById('currentStanceText').textContent = stanceData.name;
+            
+            // Update stance dropdown options
+            document.querySelectorAll('.stance-option').forEach(option => {
+                option.classList.remove('current');
+                if (option.dataset.stance === player.stance) {
+                    option.classList.add('current');
+                }
+            });
+        }
+
+        // Update combo display
+        function updateComboDisplay() {
+            const comboDisplay = document.getElementById('comboDisplay');
+            const comboNumber = document.getElementById('comboNumber');
+            const player = gameState.player;
+            
+            comboNumber.textContent = player.comboCount;
+            
+            if (player.comboCount > 0) {
+                comboDisplay.classList.remove('hidden');
+                
+                // Add visual flair for high combos
+                if (player.comboCount >= 5) {
+                    comboDisplay.style.background = 'linear-gradient(45deg, #ff6b35, #f7931e)';
+                    comboDisplay.style.transform = 'scale(1.1)';
+                } else if (player.comboCount >= 3) {
+                    comboDisplay.style.background = 'linear-gradient(45deg, #ffd700, #ffed4e)';
+                    comboDisplay.style.transform = 'scale(1.05)';
+                } else {
+                    comboDisplay.style.background = 'rgba(255, 215, 0, 0.95)';
+                    comboDisplay.style.transform = 'scale(1)';
+                }
+            } else {
+                comboDisplay.classList.add('hidden');
+            }
+        }
+
+        // Reset combo counter
+        function resetCombo() {
+            gameState.player.comboCount = 0;
+            updateComboDisplay();
+            addToBattleLog("Combo broken!");
+        }
+
+        // Initialize game with enhanced systems
+        function initGame() {
+            applyStanceModifiers(); // Apply initial stance modifiers
+            updateDisplay();
+            updateStanceDisplay();
+            updateComboDisplay();
+            updateInventoryDisplay(); // Initialize inventory display
+            updateSummonMenu(); // Initialize summon menu
+            updateBattleMessage("What will Xannis do?");
+        }
+
+        // Sprite animation system - ready for sprite sheet integration
+        function animateSprite(spriteId, action) {
+            const container = document.getElementById(spriteId + 'SpriteContainer');
+            const sprite = document.getElementById(spriteId + 'Sprite');
+            
+            if (!container || !sprite) {
+                console.warn(`Sprite ${spriteId} not found`);
+                return;
+            }
+            
+            // Set animation state - this will trigger CSS animations
+            container.dataset.state = action;
+            
+            // Visual feedback for placeholder sprites
+            if (action === 'attack') {
+                sprite.style.transform = sprite.id === 'playerSprite' ? 
+                    'scaleX(-1) translateX(10px) scale(1.1)' : 
+                    'translateX(-10px) scale(1.1)';
+            } else if (action === 'hurt') {
+                sprite.style.filter = 'brightness(1.5) hue-rotate(30deg)';
+            } else if (action === 'heal') {
+                sprite.style.filter = 'brightness(1.3) hue-rotate(120deg)';
+                sprite.style.transform = sprite.id === 'playerSprite' ? 
+                    'scaleX(-1) scale(1.05)' : 'scale(1.05)';
+            } else if (action === 'buff') {
+                sprite.style.filter = 'brightness(1.4) hue-rotate(60deg)';
+                sprite.style.transform = sprite.id === 'playerSprite' ? 
+                    'scaleX(-1) scale(1.1)' : 'scale(1.1)';
+            }
+            
+            // Reset to idle after animation
+            setTimeout(() => {
+                container.dataset.state = 'idle';
+                sprite.style.transform = sprite.id === 'playerSprite' ? 'scaleX(-1)' : '';
+                sprite.style.filter = '';
+            }, action === 'attack' ? 800 : 600);
+        }
+
+        // Enhanced combat actions with combo system and special effects
+        function performBasicAttack() {
+            if (gameState.battle.turn !== "player") return;
+            
+            const player = gameState.player;
+            const enemy = gameState.enemy;
+            
+            // Get modified stats from status effects
+            const playerStats = getModifiedStats(player);
+            const enemyStats = getModifiedStats(enemy);
+            
+            // Check for dodge (including perfect dodge)
+            if (Math.random() * 100 < enemyStats.evasion) {
+                if (hasSpecialEffect(enemy, 'perfectDodge')) {
+                    updateBattleMessage("Enemy's perfect dodge! Attack completely avoided!");
+                } else {
+                    updateBattleMessage("Enemy dodged your attack!");
+                }
+                animateSprite('enemy', 'dodge');
+                addToBattleLog("Enemy dodged your attack!");
+                resetCombo(); // Reset combo on miss
+                endPlayerTurn();
+                return;
+            }
+            
+            let damage = playerStats.attack;
+            
+            // Add combo bonus
+            if (player.comboCount > 0) {
+                damage += player.comboCount * 2; // +2 damage per combo
+            }
+            
+            // Check for guaranteed critical hit
+            let isCritical = hasSpecialEffect(player, 'guaranteedCrit') || 
+                            Math.random() * 100 < playerStats.critRate;
+            
+            if (isCritical) {
+                damage = Math.floor(damage * 1.8);
+                updateBattleMessage(`Critical hit! You deal ${damage} damage!`);
+                animateSprite('enemy', 'hurt');
+                showFloatingDamage(damage, true);
+                
+                // Remove guaranteed crit effect after use
+                if (hasSpecialEffect(player, 'guaranteedCrit')) {
+                    player.statusEffects = player.statusEffects.filter(effect => 
+                        !statusEffects[effect.type].guaranteedCrit
+                    );
+                    addToBattleLog("Focused Strike consumed!");
+                }
+            } else {
+                updateBattleMessage(`You attack for ${damage} damage!`);
+                animateSprite('enemy', 'hurt');
+                showFloatingDamage(damage, false);
+            }
+            
+            // Animate player attack
+            animateSprite('player', 'attack');
+            
+            // Increase combo
+            player.comboCount++;
+            updateComboDisplay();
+            
+            dealDamage(enemy, damage);
+            addToBattleLog(`Xannis attacks for ${damage} damage! (Combo: ${player.comboCount})`);
+            
+            // Check for enemy counter attack
+            attemptCounterAttack(enemy, player, damage);
+            
+            endPlayerTurn();
+        }
+
+        function useJutsu(jutsuKey) {
+            if (gameState.battle.turn !== "player") return;
+            
+            const jutsu = jutsuDatabase[jutsuKey];
+            const player = gameState.player;
+            const target = jutsu.selfTarget ? player : gameState.enemy;
+            
+            // Check chakra cost
+            if (player.chakra < jutsu.chakraCost) {
+                updateBattleMessage("Not enough chakra!");
+                addToBattleLog("Not enough chakra!");
+                return;
+            }
+            
+            // Check will power cost
+            if (jutsu.willPowerCost && player.willPower < jutsu.willPowerCost) {
+                updateBattleMessage("Not enough will power!");
+                addToBattleLog("Not enough will power!");
+                return;
+            }
+            
+            // Consume resources
+            player.chakra -= jutsu.chakraCost;
+            if (jutsu.willPowerCost) {
+                player.willPower -= jutsu.willPowerCost;
+            }
+            
+            // Handle healing jutsu
+            if (jutsu.healing) {
+                const healAmount = Math.min(jutsu.healing, player.maxHealth - player.health);
+                player.health += healAmount;
+                updateBattleMessage(`${jutsu.name} restores ${healAmount} HP!`);
+                addToBattleLog(`Xannis uses ${jutsu.name} and recovers ${healAmount} HP!`);
+                showFloatingDamage(healAmount, false, true, true);
+                animateSprite('player', 'heal');
+            }
+            // Handle damage jutsu
+            else if (jutsu.damage > 0) {
+                // Check for perfect dodge on enemy
+                const enemyStats = getModifiedStats(target);
+                if (Math.random() * 100 < enemyStats.evasion) {
+                    if (hasSpecialEffect(target, 'perfectDodge')) {
+                        updateBattleMessage(`Enemy's perfect dodge! ${jutsu.name} completely avoided!`);
+                    } else {
+                        updateBattleMessage(`Enemy dodged ${jutsu.name}!`);
+                    }
+                    animateSprite('enemy', 'dodge');
+                    addToBattleLog(`Enemy dodged ${jutsu.name}!`);
+                    resetCombo();
+                    hideAllDropdowns();
+                    endPlayerTurn();
+                    return;
+                }
+                
+                // Calculate damage with combo bonus
+                let damage = jutsu.damage;
+                
+                if (player.comboCount > 0 && jutsu.comboBonus) {
+                    damage += player.comboCount * jutsu.comboBonus;
+                }
+                
+                // Apply status effect modifiers to player stats
+                const playerStats = getModifiedStats(player);
+                let critRate = playerStats.critRate + (jutsu.critBonus || 0);
+                let isCritical = hasSpecialEffect(player, 'guaranteedCrit') || 
+                                Math.random() * 100 < critRate;
+                
+                if (isCritical) {
+                    damage = Math.floor(damage * 2);
+                    updateBattleMessage(`${jutsu.name} critical hit! ${damage} damage!`);
+                    animateSprite('enemy', 'hurt');
+                    showFloatingDamage(damage, true);
+                    
+                    // Remove guaranteed crit effect after use
+                    if (hasSpecialEffect(player, 'guaranteedCrit')) {
+                        player.statusEffects = player.statusEffects.filter(effect => 
+                            !statusEffects[effect.type].guaranteedCrit
+                        );
+                        addToBattleLog("Focused Strike consumed!");
+                    }
+                } else {
+                    updateBattleMessage(`${jutsu.name} deals ${damage} damage!`);
+                    animateSprite('enemy', 'hurt');
+                    showFloatingDamage(damage, false);
+                }
+                
+                // Animate player jutsu
+                animateSprite('player', 'attack');
+                
+                // Increase combo for offensive jutsu
+                if (!jutsu.isDefensive && !jutsu.isEnhancement) {
+                    player.comboCount++;
+                    updateComboDisplay();
+                }
+                
+                dealDamage(target, damage);
+                addToBattleLog(`Xannis uses ${jutsu.name} for ${damage} damage! (Combo: ${player.comboCount})`);
+                
+                // Check for enemy counter attack
+                attemptCounterAttack(target, player, damage);
+            }
+            // Handle buff/support jutsu
+            else {
+                updateBattleMessage(`${jutsu.name} enhances your abilities!`);
+                addToBattleLog(`Xannis uses ${jutsu.name} for support!`);
+                animateSprite('player', 'buff');
+            }
+            
+            // Apply status effects to appropriate target
+            jutsu.effects.forEach(effect => {
+                applyStatusEffect(target, effect);
+            });
+            
+            hideAllDropdowns();
+            
+            // Special case: Battle Meditation doesn't end turn (quick action)
+            if (jutsuKey === 'battle_meditation') {
+                // NEW: +5 WP for chakra meditation
+                gainWillPower(5, "Chakra Meditation");
+                updateBattleMessage("Battle Meditation restores focus! (Quick Action)");
+                updateDisplay();
+                updateSummonMenu(); // Update summon availability
+                return; // Don't end turn
+            }
+            
+            endPlayerTurn();
+        }
+
+        function performDodge() {
+            if (gameState.battle.turn !== "player") return;
+            
+            gameState.player.evasion += 30;
+            updateBattleMessage("You focus on dodging the next attack!");
+            addToBattleLog("Xannis prepares to dodge!");
+            
+            // Reset after enemy turn
+            setTimeout(() => {
+                gameState.player.evasion -= 30;
+            }, 3000);
+            
+            hideAllDropdowns();
+            endPlayerTurn();
+        }
+
+        function performBlock() {
+            if (gameState.battle.turn !== "player") return;
+            
+            gameState.player.blockCharge = 2;
+            updateBattleMessage("You prepare to block incoming attacks!");
+            addToBattleLog("Xannis takes a defensive stance!");
+            
+            hideAllDropdowns();
+            endPlayerTurn();
+        }
+
+        // Enemy AI
+        function enemyTurn() {
+            const enemy = gameState.enemy;
+            const player = gameState.player;
+            
+            // Check for paralysis
+            if (hasStatusEffect(enemy, 'paralysis') && Math.random() < 0.5) {
+                updateBattleMessage("Enemy is paralyzed and cannot act!");
+                addToBattleLog("Enemy is paralyzed!");
+                endEnemyTurn();
+                return;
+            }
+            
+            // Simple AI
+            const action = Math.random();
+            
+            if (action < 0.7) {
+                enemyBasicAttack();
+            } else {
+                enemyUseJutsu();
+            }
+            
+            setTimeout(() => endEnemyTurn(), 2000);
+        }
+
+        function enemyBasicAttack() {
+            const enemy = gameState.enemy;
+            const player = gameState.player;
+            
+            // Get modified stats from status effects
+            const enemyStats = getModifiedStats(enemy);
+            const playerStats = getModifiedStats(player);
+            
+            let damage = enemyStats.attack;
+            
+            // Check if player is blocking
+            if (player.blockCharge > 0) {
+                damage = Math.floor(damage * 0.3);
+                player.blockCharge--;
+                updateBattleMessage(`Enemy attacks! You block most damage! ${damage} damage taken!`);
+                addToBattleLog(`Enemy attack blocked! Only ${damage} damage taken!`);
+            } else {
+                // Check for dodge using modified evasion (including perfect dodge)
+                if (Math.random() * 100 < playerStats.evasion) {
+                    if (hasSpecialEffect(player, 'perfectDodge')) {
+                        updateBattleMessage("Perfect dodge! You completely avoided the attack!");
+                        addToBattleLog("Xannis perfectly dodged the enemy attack!");
+                    } else {
+                        updateBattleMessage("You dodged the enemy's attack!");
+                        addToBattleLog("Xannis dodged the enemy attack!");
+                    }
+                    animateSprite('player', 'dodge');
+                    
+                    // Check if this was a prepared dodge for WP bonus
+                    checkDodgeSuccess();
+                    return;
+                }
+                
+                updateBattleMessage(`Enemy attacks for ${damage} damage!`);
+                addToBattleLog(`Enemy deals ${damage} damage!`);
+            }
+            
+            // NEW: Process summon damage absorption
+            if (damage > 0) {
+                damage = processSummonDamage(damage);
+            }
+            
+            // Reset combo on taking damage
+            if (damage > 0) {
+                resetCombo();
+            }
+            
+            animateSprite('player', 'hurt');
+            animateSprite('enemy', 'attack');
+            showFloatingDamage(damage, false, true);
+            dealDamage(player, damage);
+            
+            // Check for player counter attack
+            if (damage > 0) {
+                attemptCounterAttack(player, enemy, damage);
+            }
+        }
+
+        function enemyUseJutsu() {
+            const jutsuKeys = ['fireball', 'water_dragon', 'poison_mist', 'venom_strike'];
+            const randomJutsu = jutsuKeys[Math.floor(Math.random() * jutsuKeys.length)];
+            const jutsu = jutsuDatabase[randomJutsu];
+            
+            // Get modified enemy stats
+            const enemyStats = getModifiedStats(gameState.enemy);
+            const playerStats = getModifiedStats(gameState.player);
+            
+            let damage = Math.floor(jutsu.damage * 0.8); // Enemy jutsu slightly weaker
+            
+            // Check for perfect dodge
+            if (Math.random() * 100 < playerStats.evasion) {
+                if (hasSpecialEffect(gameState.player, 'perfectDodge')) {
+                    updateBattleMessage(`Perfect dodge! You completely avoided ${jutsu.name}!`);
+                    addToBattleLog(`Xannis perfectly dodged enemy ${jutsu.name}!`);
+                } else {
+                    updateBattleMessage(`You dodged enemy ${jutsu.name}!`);
+                    addToBattleLog(`Xannis dodged enemy ${jutsu.name}!`);
+                }
+                animateSprite('player', 'dodge');
+                
+                // Check if this was a prepared dodge for WP bonus
+                checkDodgeSuccess();
+                return;
+            }
+            
+            updateBattleMessage(`Enemy uses ${jutsu.name}! ${damage} damage!`);
+            addToBattleLog(`Enemy uses ${jutsu.name} for ${damage} damage!`);
+            
+            // NEW: Process summon damage absorption
+            if (damage > 0) {
+                damage = processSummonDamage(damage);
+            }
+            
+            // Reset combo on taking damage
+            if (damage > 0) {
+                resetCombo();
+            }
+            
+            animateSprite('player', 'hurt');
+            animateSprite('enemy', 'attack');
+            showFloatingDamage(damage, false, true);
+            dealDamage(gameState.player, damage);
+            
+            // Apply effects to player
+            jutsu.effects.forEach(effect => {
+                applyStatusEffect(gameState.player, effect);
+            });
+            
+            // Check for player counter attack
+            if (damage > 0) {
+                attemptCounterAttack(gameState.player, gameState.enemy, damage);
+            }
+        }
+
+        // Utility functions
+        function dealDamage(target, damage) {
+            target.health = Math.max(0, target.health - damage);
+            updateDisplay();
+            
+            if (target.health <= 0) {
+                if (target === gameState.player) {
+                    gameOver(false);
+                } else {
+                    gameOver(true);
+                }
+            }
+        }
+
+        function applyStatusEffect(target, effect) {
+            // Check for status immunity
+            if (hasSpecialEffect(target, 'immuneToStatus')) {
+                const message = `${target === gameState.player ? 'Xannis' : 'Enemy'} is immune to status effects!`;
+                addToBattleLog(message);
+                return;
+            }
+            
+            const existingEffect = target.statusEffects.find(e => e.type === effect.type);
+            if (existingEffect) {
+                existingEffect.duration = Math.max(existingEffect.duration, effect.duration);
+            } else {
+                target.statusEffects.push({...effect});
+            }
+            
+            const effectName = statusEffects[effect.type].name;
+            const message = `${target === gameState.player ? 'Xannis' : 'Enemy'} is affected by ${effectName}!`;
+            addToBattleLog(message);
+            updateDisplay();
+            
+            // Trigger a visual effect to show status was applied
+            const spriteId = target === gameState.player ? 'player' : 'enemy';
+            animateSprite(spriteId, 'hurt');
+        }
+
+        function hasStatusEffect(target, effectType) {
+            return target.statusEffects.some(effect => effect.type === effectType);
+        }
+
+        function processStatusEffects(target) {
+            target.statusEffects = target.statusEffects.filter(effect => {
+                const statusData = statusEffects[effect.type];
+                
+                // Damage over time effects
+                if (statusData.damagePerTurn) {
+                    dealDamage(target, statusData.damagePerTurn);
+                    const message = `${target === gameState.player ? 'Xannis' : 'Enemy'} takes ${statusData.damagePerTurn} ${statusData.name} damage!`;
+                    addToBattleLog(message);
+                    showFloatingDamage(statusData.damagePerTurn, false, target === gameState.player);
+                }
+                
+                // NEW: Healing over time effects
+                if (statusData.healPerTurn) {
+                    const healAmount = Math.min(statusData.healPerTurn, target.maxHealth - target.health);
+                    target.health += healAmount;
+                    const message = `${target === gameState.player ? 'Xannis' : 'Enemy'} recovers ${healAmount} HP from ${statusData.name}!`;
+                    addToBattleLog(message);
+                    showFloatingDamage(healAmount, false, target === gameState.player, true);
+                }
+                
+                // NEW: Chakra regeneration effects
+                if (statusData.chakraPerTurn && target.maxChakra) {
+                    const chakraAmount = Math.min(statusData.chakraPerTurn, target.maxChakra - target.chakra);
+                    target.chakra += chakraAmount;
+                    const message = `${target === gameState.player ? 'Xannis' : 'Enemy'} recovers ${chakraAmount} CP from ${statusData.name}!`;
+                    addToBattleLog(message);
+                }
+                
+                effect.duration--;
+                
+                if (effect.duration <= 0) {
+                    const message = `${statusData.name} effect wears off!`;
+                    addToBattleLog(message);
+                    return false;
+                }
+                return true;
+            });
+        }
+
+        // NEW: Apply status effect modifiers to stats including summon bonuses
+        function getModifiedStats(character) {
+            let modifiedStats = {
+                attack: character.attack,
+                defense: character.defense,
+                speed: character.speed,
+                critRate: character.critRate,
+                evasion: character.evasion
+            };
+            
+            // Apply status effect modifiers
+            character.statusEffects.forEach(effect => {
+                const statusData = statusEffects[effect.type];
+                
+                if (statusData.attackBonus) modifiedStats.attack += statusData.attackBonus;
+                if (statusData.attackReduction) modifiedStats.attack -= statusData.attackReduction;
+                if (statusData.defenseBonus) modifiedStats.defense += statusData.defenseBonus;
+                if (statusData.defenseReduction) modifiedStats.defense -= statusData.defenseReduction;
+                if (statusData.speedBonus) modifiedStats.speed += statusData.speedBonus;
+                if (statusData.speedReduction) modifiedStats.speed = Math.floor(modifiedStats.speed * (1 - statusData.speedReduction / 100));
+                if (statusData.critBonus) modifiedStats.critRate += statusData.critBonus;
+                
+                // Perfect evasion overrides normal evasion
+                if (statusData.perfectDodge) modifiedStats.evasion = 100;
+            });
+            
+            // NEW: Apply summon bonuses (only for player)
+            if (character === gameState.player) {
+                const summon = gameState.summoning.activeSummon;
+                if (summon) {
+                    if (summon.attackBonus) modifiedStats.attack += summon.attackBonus;
+                    if (summon.speedBonus) modifiedStats.speed += summon.speedBonus;
+                    // Note: Other bonuses are handled in specific combat functions
+                }
+            }
+            
+            // Ensure stats don't go below 1
+            Object.keys(modifiedStats).forEach(stat => {
+                if (typeof modifiedStats[stat] === 'number') {
+                    modifiedStats[stat] = Math.max(1, modifiedStats[stat]);
+                }
+            });
+            
+            return modifiedStats;
+        }
+
+        // NEW: Check for special status effects
+        function hasSpecialEffect(character, effectType) {
+            return character.statusEffects.some(effect => {
+                const statusData = statusEffects[effect.type];
+                return statusData[effectType];
+            });
+        }
+
+        // NEW: Handle counter attacks
+        function attemptCounterAttack(defender, attacker, originalDamage) {
+            if (hasSpecialEffect(defender, 'counterChance')) {
+                const counterEffect = defender.statusEffects.find(effect => 
+                    statusEffects[effect.type].counterChance
+                );
+                const statusData = statusEffects[counterEffect.type];
+                
+                if (Math.random() * 100 < statusData.counterChance) {
+                    const counterDamage = Math.floor(originalDamage * 0.75);
+                    updateBattleMessage(`Counter attack! ${counterDamage} damage!`);
+                    addToBattleLog(`Counter attack deals ${counterDamage} damage!`);
+                    
+                    animateSprite(attacker === gameState.player ? 'enemy' : 'player', 'hurt');
+                    showFloatingDamage(counterDamage, false, attacker === gameState.player);
+                    dealDamage(attacker, counterDamage);
+                    
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        function showFloatingDamage(amount, isCritical, isPlayerTarget = false, isHealing = false) {
+            const container = isPlayerTarget ? 
+                document.getElementById('playerSpriteContainer') : 
+                document.getElementById('enemySpriteContainer');
+            
+            const damageText = document.createElement('div');
+            damageText.className = 'floating-damage';
+            damageText.textContent = isHealing ? `+${amount}` : amount;
+            
+            if (isHealing) {
+                damageText.style.color = '#4caf50'; // Green for healing
+                damageText.style.fontSize = '20px';
+            } else if (isCritical) {
+                damageText.style.color = '#ff1744'; // Red for critical
+                damageText.style.fontSize = '32px';
+            } else {
+                damageText.style.color = '#ff5722'; // Orange for normal damage
+                damageText.style.fontSize = '24px';
+            }
+            
+            // Position relative to sprite
+            damageText.style.left = '50%';
+            damageText.style.top = '20%';
+            
+            container.appendChild(damageText);
+            
+            setTimeout(() => {
+                damageText.remove();
+            }, 2000);
+        }
+
+        // Enhanced UI Management with smooth bar animations
+        function updateDisplay() {
+            const player = gameState.player;
+            const enemy = gameState.enemy;
+            
+            // Update player stats with smooth bar transitions
+            document.getElementById('playerHealthText').textContent = `${player.health}/${player.maxHealth}`;
+            document.getElementById('playerChakraText').textContent = `${player.chakra}/${player.maxChakra}`;
+            document.getElementById('playerWPText').textContent = `${player.willPower}/${player.maxWillPower}`;
+            
+            // Smooth bar animations
+            const healthPercent = (player.health / player.maxHealth * 100);
+            const chakraPercent = (player.chakra / player.maxChakra * 100);
+            const wpPercent = (player.willPower / player.maxWillPower * 100);
+            
+            document.getElementById('playerHealthBar').style.width = healthPercent + '%';
+            document.getElementById('playerChakraBar').style.width = chakraPercent + '%';
+            document.getElementById('playerWPBar').style.width = wpPercent + '%';
+            
+            // Update enemy stats
+            document.getElementById('enemyHealthText').textContent = `${enemy.health}/${enemy.maxHealth}`;
+            const enemyHealthPercent = (enemy.health / enemy.maxHealth * 100);
+            document.getElementById('enemyHealthBar').style.width = enemyHealthPercent + '%';
+            
+            // Update player stat numbers (affected by stance and status effects)
+            const playerStats = getModifiedStats(player);
+            document.getElementById('playerAttack').textContent = playerStats.attack;
+            document.getElementById('playerDefense').textContent = playerStats.defense;
+            document.getElementById('playerSpeed').textContent = playerStats.speed;
+            document.getElementById('playerCrit').textContent = playerStats.critRate;
+            document.getElementById('playerEvasion').textContent = playerStats.evasion;
+            
+            // Update status effects
+            updateStatusEffectsDisplay('playerStatus', player.statusEffects);
+            updateStatusEffectsDisplay('enemyStatus', enemy.statusEffects);
+        }
+
+        function updateStatusEffectsDisplay(containerId, effects) {
+            const container = document.getElementById(containerId);
+            container.innerHTML = '';
+            
+            effects.forEach(effect => {
+                const statusData = statusEffects[effect.type];
+                const statusDiv = document.createElement('div');
+                statusDiv.className = 'status-effect';
+                statusDiv.style.backgroundColor = statusData.color;
+                statusDiv.textContent = `${statusData.name} (${effect.duration})`;
+                statusDiv.setAttribute('data-tooltip', `${statusData.tooltip} ${effect.duration} turns`);
+                container.appendChild(statusDiv);
+            });
+        }
+
+        function updateBattleMessage(message) {
+            document.getElementById('battleMessage').innerHTML = message + 
+                '<button class="message-toggle" onclick="toggleBattleLog()">▲</button>';
+        }
+
+        function addToBattleLog(message) {
+            battleLog.push(message);
+            
+            // Keep only last 10 messages for performance
+            if (battleLog.length > 10) {
+                battleLog.shift();
+            }
+        }
+
+        function toggleBattleLog() {
+            const messageBox = document.getElementById('battleMessage');
+            const isExpanded = gameState.battle.logExpanded;
+            
+            if (isExpanded) {
+                // Collapse - show only current message
+                messageBox.classList.remove('expanded');
+                messageBox.innerHTML = battleLog[battleLog.length - 1] + 
+                    '<button class="message-toggle" onclick="toggleBattleLog()">▲</button>';
+                gameState.battle.logExpanded = false;
+            } else {
+                // Expand - show full log
+                messageBox.classList.add('expanded');
+                messageBox.innerHTML = battleLog.slice(-4).join('<br>') + 
+                    '<button class="message-toggle" onclick="toggleBattleLog()">▼</button>';
+                gameState.battle.logExpanded = true;
+            }
+        }
+
+        // Menu controls
+        function toggleJutsuMenu() {
+            const dropdown = document.getElementById('jutsuDropdown');
+            const isActive = dropdown.classList.contains('active');
+            
+            hideAllDropdowns();
+            
+            if (!isActive) {
+                dropdown.classList.add('active');
+            }
+        }
+
+        function toggleSpecialMenu() {
+            const dropdown = document.getElementById('specialDropdown');
+            const isActive = dropdown.classList.contains('active');
+            
+            hideAllDropdowns();
+            
+            if (!isActive) {
+                dropdown.classList.add('active');
+            }
+        }
+
+        function toggleDefenseMenu() {
+            const dropdown = document.getElementById('defenseDropdown');
+            const isActive = dropdown.classList.contains('active');
+            
+            hideAllDropdowns();
+            
+            if (!isActive) {
+                dropdown.classList.add('active');
+            }
+        }
+
+        function toggleInventory() {
+            const panel = document.getElementById('inventoryPanel');
+            panel.classList.toggle('active');
+        }
+
+        function hideAllDropdowns() {
+            document.querySelectorAll('.dropdown-menu, .stance-dropdown-menu').forEach(menu => {
+                menu.classList.remove('active');
+            });
+        }
+
+        // Turn management with enhanced WP system and summoning
+        function endPlayerTurn() {
+            processStatusEffects(gameState.player);
+            
+            // NEW: Process summon turn effects
+            processSummonTurn();
+            
+            // Enhanced resource regeneration with WP system
+            const oldChakra = gameState.player.chakra;
+            gameState.player.chakra = Math.min(gameState.player.maxChakra, gameState.player.chakra + 5);
+            const chakraGained = gameState.player.chakra - oldChakra;
+            
+            // NEW: +5 WP bonus for chakra regeneration if substantial
+            if (chakraGained >= 5) {
+                gainWillPower(5, "Chakra Recharge");
+            }
+            
+            // NEW: Base WP regeneration (+2 per turn)
+            gainWillPower(2, "Turn Regeneration");
+            
+            // WP regeneration based on combat situation
+            let wpRegen = 0; // Base regen now handled by gainWillPower above
+            
+            // Bonus WP regen when low on health (desperation)
+            if (gameState.player.health < gameState.player.maxHealth * 0.3) {
+                gainWillPower(2, "Desperation");
+            }
+            
+            // Bonus WP regen when enemy is low on health (confidence)
+            if (gameState.enemy.health < gameState.enemy.maxHealth * 0.25) {
+                gainWillPower(1, "Victory in Sight");
+            }
+            
+            gameState.battle.turn = "enemy";
+            gameState.battle.turnCount++;
+            updateDisplay();
+            updateSummonMenu(); // Update summon availability
+            
+            setTimeout(() => {
+                enemyTurn();
+            }, 1000);
+        }
+
+        function endEnemyTurn() {
+            processStatusEffects(gameState.enemy);
+            
+            // NEW: Process summon turn effects on enemy turn too
+            processSummonTurn();
+            
+            gameState.battle.turn = "player";
+            updateDisplay();
+            updateSummonMenu(); // Update summon availability
+            updateBattleMessage("What will Xannis do?");
+        }
+
+        function gameOver(playerWon) {
+            gameState.battle.inProgress = false;
+            
+            if (playerWon) {
+                updateBattleMessage("🎉 VICTORY! You defeated the enemy! 🎉");
+                addToBattleLog("Victory achieved!");
+            } else {
+                updateBattleMessage("💀 DEFEAT! You were defeated... 💀");
+                addToBattleLog("Xannis was defeated...");
+            }
+            
+            // Reset combo on battle end
+            resetCombo();
+        }
+
+        // Event listeners for click outside to close dropdowns
+        document.addEventListener('click', function(event) {
+            // Fix: Check if event.target exists and has closest method
+            if (!event.target || typeof event.target.closest !== 'function') return;
+            
+            if (!event.target.closest('.menu-button') && !event.target.closest('.stance-controls')) {
+                hideAllDropdowns();
+            }
+            
+            if (!event.target.closest('.inventory-panel') && !event.target.closest('[onclick*="toggleInventory"]')) {
+                const inventoryPanel = document.getElementById('inventoryPanel');
+                if (inventoryPanel) {
+                    inventoryPanel.classList.remove('active');
+                }
+            }
+        });
+
+        // Add specific event listener for special menu
+        document.addEventListener('click', function(event) {
+            if (!event.target || typeof event.target.closest !== 'function') return;
+            
+            if (!event.target.closest('#specialButton')) {
+                const specialDropdown = document.getElementById('specialDropdown');
+                if (specialDropdown) {
+                    specialDropdown.classList.remove('active');
+                }
+            }
+            
+            if (!event.target.closest('#summonButton')) {
+                const summonDropdown = document.getElementById('summonDropdown');
+                if (summonDropdown) {
+                    summonDropdown.classList.remove('active');
+                }
+            }
+        });
+
+        // Initialize game when page loads
+        window.onload = function() {
+            initGame();
+            setupMobileTooltips();
+            setupCursorTooltips();
+        };
+
+        // Cursor-following tooltip system
+        function setupCursorTooltips() {
+            // Create tooltip element
+            const tooltip = document.createElement('div');
+            tooltip.className = 'jutsu-tooltip-dynamic';
+            tooltip.id = 'cursorTooltip';
+            document.body.appendChild(tooltip);
+
+            // Add event listeners to all elements with data-tooltip
+            document.addEventListener('mouseenter', function(e) {
+                // Fix: Check if target exists and has closest method
+                if (!e.target || typeof e.target.closest !== 'function') return;
+                
+                const elementWithTooltip = e.target.closest('[data-tooltip]');
+                if (elementWithTooltip && elementWithTooltip.dataset.tooltip) {
+                    const tooltipText = elementWithTooltip.dataset.tooltip;
+                    
+                    tooltip.textContent = tooltipText;
+                    tooltip.style.opacity = '1';
+                    tooltip.style.visibility = 'visible';
+                }
+            }, true);
+
+            document.addEventListener('mouseleave', function(e) {
+                // Fix: Check if target exists and has closest method
+                if (!e.target || typeof e.target.closest !== 'function') return;
+                
+                if (e.target.closest('[data-tooltip]')) {
+                    tooltip.style.opacity = '0';
+                    tooltip.style.visibility = 'hidden';
+                }
+            }, true);
+
+            document.addEventListener('mousemove', function(e) {
+                // Fix: Check if target exists and has closest method
+                if (!e.target || typeof e.target.closest !== 'function') return;
+                
+                const elementWithTooltip = e.target.closest('[data-tooltip]');
+                if (elementWithTooltip && elementWithTooltip.dataset.tooltip) {
+                    const offsetX = 15;
+                    const offsetY = -10;
+                    
+                    // Get viewport dimensions
+                    const viewportWidth = window.innerWidth;
+                    const viewportHeight = window.innerHeight;
+                    
+                    // Get tooltip dimensions
+                    const tooltipRect = tooltip.getBoundingClientRect();
+                    const tooltipWidth = tooltipRect.width;
+                    const tooltipHeight = tooltipRect.height;
+                    
+                    let x = e.clientX + offsetX;
+                    let y = e.clientY + offsetY;
+                    
+                    // Adjust if tooltip would go off-screen horizontally
+                    if (x + tooltipWidth > viewportWidth) {
+                        x = e.clientX - tooltipWidth - offsetX;
+                    }
+                    
+                    // Adjust if tooltip would go off-screen vertically
+                    if (y + tooltipHeight > viewportHeight) {
+                        y = e.clientY - tooltipHeight - offsetY;
+                    }
+                    
+                    // Ensure tooltip doesn't go above viewport
+                    if (y < 0) {
+                        y = e.clientY + offsetY;
+                    }
+                    
+                    // Ensure tooltip doesn't go left of viewport
+                    if (x < 0) {
+                        x = e.clientX + offsetX;
+                    }
+                    
+                    tooltip.style.left = x + 'px';
+                    tooltip.style.top = y + 'px';
+                }
+            });
+        }
+
+        // Mobile tooltip handling
+        function setupMobileTooltips() {
+            let touchTimer;
+            let isLongPress = false;
+            const tooltip = document.getElementById('cursorTooltip');
+
+            // Handle all tooltips on mobile
+            document.addEventListener('touchstart', function(e) {
+                // Fix: Check if target exists and has closest method
+                if (!e.target || typeof e.target.closest !== 'function') return;
+                
+                // Skip if touching the message toggle button
+                if (e.target.closest('.message-toggle')) {
+                    return;
+                }
+                
+                if (e.target.closest('.status-effect')) {
+                    touchTimer = setTimeout(() => {
+                        isLongPress = true;
+                        const statusEffect = e.target.closest('.status-effect');
+                        statusEffect.classList.add('tooltip-active');
+                        
+                        // Remove tooltip after 3 seconds
+                        setTimeout(() => {
+                            statusEffect.classList.remove('tooltip-active');
+                        }, 3000);
+                    }, 500); // 500ms long press
+                }
+                
+                const elementWithTooltip = e.target.closest('[data-tooltip]');
+                if (elementWithTooltip && elementWithTooltip.dataset.tooltip) {
+                    touchTimer = setTimeout(() => {
+                        isLongPress = true;
+                        const tooltipText = elementWithTooltip.dataset.tooltip;
+                        const touch = e.touches[0];
+                        
+                        // Show tooltip at touch position
+                        tooltip.textContent = tooltipText;
+                        tooltip.style.left = (touch.clientX + 15) + 'px';
+                        tooltip.style.top = (touch.clientY - 10) + 'px';
+                        tooltip.style.opacity = '1';
+                        tooltip.style.visibility = 'visible';
+                        
+                        // Remove tooltip after 3 seconds
+                        setTimeout(() => {
+                            tooltip.style.opacity = '0';
+                            tooltip.style.visibility = 'hidden';
+                        }, 3000);
+                    }, 500);
+                }
+            });
+
+            document.addEventListener('touchend', function(e) {
+                clearTimeout(touchTimer);
+                
+                // Fix: Check if target exists and has closest method
+                if (!e.target || typeof e.target.closest !== 'function') return;
+                
+                // If it was a long press, prevent the click (but not for message toggle)
+                if (isLongPress && !e.target.closest('.message-toggle')) {
+                    e.preventDefault();
+                    isLongPress = false;
+                }
+            });
+
+            document.addEventListener('touchmove', function() {
+                clearTimeout(touchTimer);
+                isLongPress = false;
+            });
+
+            // Hide tooltips when touching elsewhere
+            document.addEventListener('touchstart', function(e) {
+                // Fix: Check if target exists and has closest method
+                if (!e.target || typeof e.target.closest !== 'function') return;
+                
+                if (!e.target.closest('.status-effect') && !e.target.closest('[data-tooltip]')) {
+                    document.querySelectorAll('.tooltip-active').forEach(el => {
+                        el.classList.remove('tooltip-active');
+                    });
+                    if (tooltip) {
+                        tooltip.style.opacity = '0';
+                        tooltip.style.visibility = 'hidden';
+                    }
+                }
+            });
+        }
+
+        // Future sprite integration functions - ready for your sprite sheets
+        
+        /**
+         * Function to load and display sprite sheets
+         * Call this when you have actual sprite image files
+         * 
+         * @param {string} spriteId - 'player' or 'enemy' (will be converted to 'playerSprite'/'enemySprite')
+         * @param {string} imagePath - path to sprite sheet image
+         * @param {object} frameData - sprite frame configuration
+         */
+        function loadSpriteSheet(spriteId, imagePath, frameData) {
+            const sprite = document.getElementById(spriteId + 'Sprite');
+            
+            if (!sprite) {
+                console.warn(`Sprite ${spriteId} not found for loading sprite sheet`);
+                return;
+            }
+            
+            // Replace placeholder with actual image
+            sprite.innerHTML = '';
+            sprite.style.backgroundImage = `url(${imagePath})`;
+            sprite.style.backgroundSize = `${frameData.sheetWidth}px ${frameData.sheetHeight}px`;
+            
+            // Store frame data for animations
+            sprite.dataset.frameWidth = frameData.frameWidth;
+            sprite.dataset.frameHeight = frameData.frameHeight;
+            sprite.dataset.framesPerRow = frameData.framesPerRow;
+        }
+        
+        /**
+         * Function to animate sprite frames
+         * Call this to switch between idle, attack, hurt animations
+         * 
+         * @param {string} spriteId - 'player' or 'enemy' (will be converted to 'playerSprite'/'enemySprite')
+         * @param {string} animationName - 'idle', 'attack', 'hurt', etc.
+         * @param {object} frameSequence - which frames to show
+         */
+        function playSpriteAnimation(spriteId, animationName, frameSequence) {
+            const sprite = document.getElementById(spriteId + 'Sprite');
+            
+            if (!sprite) {
+                console.warn(`Sprite ${spriteId} not found`);
+                return;
+            }
+            
+            // Check if sprite sheet data exists
+            if (!sprite.dataset.frameWidth) {
+                console.log(`Sprite sheet not loaded for ${spriteId}, using placeholder animation`);
+                animateSprite(spriteId, animationName);
+                return;
+            }
+            
+            const frameWidth = parseInt(sprite.dataset.frameWidth);
+            const frameHeight = parseInt(sprite.dataset.frameHeight);
+            const framesPerRow = parseInt(sprite.dataset.framesPerRow);
+            
+            let currentFrame = 0;
+            const frameCount = frameSequence.length;
+            
+            const animationInterval = setInterval(() => {
+                const frame = frameSequence[currentFrame];
+                const x = (frame % framesPerRow) * frameWidth;
+                const y = Math.floor(frame / framesPerRow) * frameHeight;
+                
+                sprite.style.backgroundPosition = `-${x}px -${y}px`;
+                
+                currentFrame++;
+                if (currentFrame >= frameCount) {
+                    clearInterval(animationInterval);
+                    // Return to idle animation
+                    if (animationName !== 'idle') {
+                        playSpriteAnimation(spriteId, 'idle', [0, 1]); // Example idle frames
+                    }
+                }
+            }, 150); // 150ms per frame
+        }
+    </script>
+</body>
+</html>

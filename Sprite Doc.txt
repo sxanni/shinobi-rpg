@@ -1,0 +1,295 @@
+# Xannis Dynamic Sprite System Documentation
+*Advanced Layered Character Sprite Framework for RPG Combat*
+
+---
+
+## **Overview**
+This document outlines a comprehensive, multi-layered sprite system for the main player character **Xannis** that dynamically adapts to game mechanics including elemental affinity, combat stance, chakra levels, actions, and jutsu casting sequences.
+
+---
+
+## **Base Character Sprites**
+
+### **Elemental Variants** (5 Core Sprites)
+Each elemental variant serves as the foundation layer for all other overlays:
+
+- **Wind Xannis** 
+  - Orange outfit with teal accents
+  - Subtle wind swirls around character
+  - Hair flows with wind effect
+
+- **Fire Xannis**
+  - Red-orange outfit with flame patterns
+  - Warm flame aura emanating from body
+  - Heated air distortion effect
+
+- **Water Xannis**
+  - Blue outfit with wave designs
+  - Water droplets floating nearby
+  - Reflective/wet surface effects
+
+- **Earth Xannis**
+  - Brown-green earth-toned outfit
+  - Small rock particles orbiting character
+  - Sturdy, grounded appearance
+
+- **Lightning Xannis**
+  - Yellow outfit with electric patterns
+  - Electric sparks crackling around
+  - Static energy hair effect
+
+---
+
+## **Stance Modification Overlays**
+*Applied over base elemental sprite - 3 variations per element*
+
+### **Balanced Stance**
+- Neutral combat-ready pose
+- Arms at sides, slightly bent
+- Feet shoulder-width apart
+- Alert but relaxed expression
+
+### **Aggressive Stance** 
+- Forward-leaning posture
+- Fists clenched and ready
+- One foot slightly forward
+- Intense, focused expression
+- **Stat Effect**: +30% Attack, -20% Defense
+
+### **Defensive Stance**
+- Arms crossed in guard position
+- Slightly crouched posture
+- Weight on back foot
+- Cautious, prepared expression
+- **Stat Effect**: +40% Defense, -20% Attack
+
+---
+
+## **Action State Sprites**
+*Dynamic sprites for different combat situations*
+
+### **Primary Action States**
+- **Idle/Ready** - Standard battle pose, breathing animation
+- **Attacking** - Mid-strike animation with motion blur
+- **Taking Damage** - Recoil animation with impact effect
+- **Dodging** - Side-step with blur trail effect
+- **Chakra Replenishing** - Meditation pose with energy swirls
+- **Victory** - Arms raised celebration pose
+- **Defeat** - Kneeling/exhausted position
+
+### **Health-Based Variations**
+- **High Health (70-100%)** - Confident, energetic posture
+- **Medium Health (30-69%)** - Slightly tired, more cautious
+- **Low Health (1-29%)** - Breathing heavily, wounded stance
+
+---
+
+## **Hand Sign Overlay System**
+*Multi-layered jutsu casting sequence*
+
+### **Layer 1: Jutsu Category Selection**
+*Triggered when player selects "Jutsu" action*
+
+**Basic Hand Sign Overlay**
+- Simple Ram or Tiger seal
+- Hands positioned at chest level
+- Slight blue chakra glow around hands
+- Duration: Until element/jutsu selected
+
+### **Layer 2: Element Selection Overlay**
+*Appears when elemental jutsu category is chosen*
+
+- **Wind Signs** - Hands forming wind-channeling positions
+- **Fire Signs** - Fingers arranged for fire jutsu preparation  
+- **Water Signs** - Flowing hand movements for water techniques
+- **Earth Signs** - Solid, grounded hand formations
+- **Lightning Signs** - Sharp, precise finger positioning
+
+### **Layer 3: Specific Jutsu Overlays**
+*Final hand sign configuration for individual techniques*
+
+#### **Rasengan Formation**
+- One hand extended forward
+- Other hand supporting/spinning motion
+- Bright blue chakra sphere forming
+- Intense concentration expression
+
+#### **Shadow Clone Seal**
+- Cross-finger hand sign
+- Both hands at chest level
+- Multiple chakra streams visible
+- Determined facial expression
+
+#### **Wind Shuriken Preparation**
+- Hands in throwing position
+- Wind chakra gathering around palms
+- Hair whipping from wind pressure
+- Focused targeting expression
+
+#### **Nine Tails Chakra Channeling**
+- Both hands pressed to ground/knees
+- Orange-red chakra aura intensifying
+- Eyes showing Nine Tails influence
+- Raw power emanating from body
+
+---
+
+## **Chakra Aura Overlay System**
+*Visual representation of current chakra levels*
+
+### **Chakra Level Indicators**
+- **High Chakra (70-100%)** - Bright blue glow, steady aura
+- **Medium Chakra (30-69%)** - Dim blue outline, flickering
+- **Low Chakra (1-29%)** - Fading wisps, barely visible
+- **Critical Chakra (0%)** - No aura, exhausted appearance
+
+### **Chakra Regeneration Effect**
+- Pulsing energy waves during regeneration
+- Particles flowing toward character
+- Brighter aura as chakra increases
+
+---
+
+## **Status Effect Overlays**
+*Visual indicators for active status conditions*
+
+### **Burn Status**
+- Small fire particles dancing on character
+- Orange-red glow effect
+- Occasional damage spark animations
+- Duration: Shows remaining turn count
+
+### **Paralysis Status**
+- Electric sparks crackling around body
+- Slight character trembling effect
+- Yellow electrical outline
+- Intermittent seizure animations
+
+### **Slow Status**
+- Gray trailing effect on movements
+- Slower animation speeds
+- Shadowy duplicate following behind
+- Sluggish posture modifications
+
+---
+
+## **Sprite Layering Architecture**
+
+```
+Xannis Character Render Pipeline
+│
+├── Base Sprite Layer (Element)
+│   ├── Wind Xannis
+│   ├── Fire Xannis
+│   ├── Water Xannis
+│   ├── Earth Xannis
+│   └── Lightning Xannis
+│
+├── Stance Overlay Layer
+│   ├── Balanced Stance Modifier
+│   ├── Aggressive Stance Modifier
+│   └── Defensive Stance Modifier
+│
+├── Action State Layer
+│   ├── Combat Action Sprites
+│   ├── Health-Based Variations
+│   └── Special Animations
+│
+├── Chakra Aura Layer
+│   ├── Chakra Level Indicators
+│   └── Regeneration Effects
+│
+├── Status Effect Layer
+│   ├── Burn Overlay
+│   ├── Paralysis Overlay
+│   └── Slow Overlay
+│
+└── Hand Sign Layer System
+    ├── Layer 1: Category Selection
+    ├── Layer 2: Element Selection
+    └── Layer 3: Specific Jutsu
+```
+
+---
+
+## **Implementation Specifications**
+
+### **Sprite Dimensions**
+- **Base Resolution**: 120x120 pixels
+- **Mobile Resolution**: 80x80 pixels
+- **Format**: SVG/CSS for scalability
+- **Animation Frame Rate**: 12-15 FPS for smooth motion
+
+### **Layer Management**
+- Each layer can be independently toggled
+- Overlays blend using appropriate CSS blend modes
+- Z-index ordering maintains proper layering
+- Transition animations between layer changes
+
+### **Performance Optimization**
+- Preload base elemental sprites
+- Cache frequently used overlay combinations
+- Use CSS transforms for efficient animations
+- Minimize DOM manipulation during combat
+
+---
+
+## **Dynamic Combination Examples**
+
+### **Scenario 1: Wind Xannis Casting Rasengan**
+```
+Base: Wind Xannis
++ Stance: Aggressive
++ Action: Casting
++ Chakra: High Level Aura
++ Hand Sign Layer 1: Basic Jutsu Seal
++ Hand Sign Layer 3: Rasengan Formation
+= Dynamic composite sprite
+```
+
+### **Scenario 2: Fire Xannis Under Status Effects**
+```
+Base: Fire Xannis
++ Stance: Defensive
++ Action: Taking Damage
++ Chakra: Low Level Aura
++ Status: Paralysis Overlay
+= Defensive fire ninja being electrocuted
+```
+
+---
+
+## **Expansion Possibilities**
+
+### **Future Sprite Additions**
+- **Weather Effects**: Rain, snow, sandstorm overlays
+- **Equipment Overlays**: Different weapons, armor pieces
+- **Transformation States**: Sage Mode, Nine Tails forms
+- **Combo Indicators**: Visual combo counter integration
+- **Environmental Adaptation**: Terrain-specific modifications
+
+### **Advanced Features**
+- **Facial Expression System**: Separate overlay for emotions
+- **Clothing Damage**: Progressive wear based on damage taken
+- **Seasonal Variants**: Holiday or event-specific appearances
+- **Customization Layers**: Player-selectable colors/accessories
+
+---
+
+## **Technical Implementation Notes**
+
+### **CSS/SVG Structure**
+- Use CSS custom properties for dynamic color changes
+- SVG masks for complex overlay blending
+- CSS animations for smooth transitions
+- Transform3d for hardware acceleration
+
+### **State Management**
+- JavaScript object tracking current layer states
+- Event-driven layer updates
+- Efficient rendering pipeline
+- Memory management for unused sprites
+
+---
+
+*This sprite system provides unprecedented visual depth and player feedback while maintaining performance and expandability for future game features.*

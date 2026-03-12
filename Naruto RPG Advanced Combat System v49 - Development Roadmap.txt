@@ -1,0 +1,76 @@
+Naruto RPG Advanced Combat System v48 - Development Roadmap
+Current Systems Status (v49)
+FULLY COMPLETED SYSTEMS
+Core Combat Foundation:
+
+Turn-based combat with robust player/enemy alternating turns
+
+4x Scaled Health/Chakra/Will Power pools for longer, tactical battles
+
+Element effectiveness chart with full rock-paper-scissors mechanics
+
+Comprehensive jutsu system with unique properties and tooltips
+
+Pokemon-style battle UI with professional sprite positioning
+
+Mobile-friendly tooltips with long press support
+
+Expandable battle log with toggle system and message history
+
+Advanced Combat Systems:
+
+STANCE SYSTEM - Three stances (Balanced/Offensive/Defensive) with full stat modifiers
+
+COMBO SYSTEM - Visual counter with jutsu damage bonuses and reset mechanics
+
+COMPLETE STATUS EFFECTS SUITE - 12+ effect types including buffs, debuffs, DoT, and regen
+
+FUNCTIONAL INVENTORY SYSTEM - 5 usable items with strategic turn costs
+
+COMPLETE WP SYSTEM - Resource management with gain mechanics and ultimate abilities
+
+LEGENDARY SUMMONING SYSTEM - 4-tier creature system with stance requirements
+
+Enhanced Visual & Audio:
+
+Floating damage numbers with color coding (damage/critical/healing)
+
+Sprite animation system with buff/heal/hurt states
+
+Tier-specific visual effects for legendary summons
+
+Smooth UI transitions and real-time stat updates
+
+Enhanced tooltips with comprehensive information display
+
+--------------------------------------------------------------------------
+
+v49.1 Target Goals: Core Battle Overhaul
+⚔️ Equipment Durability & Attrition
+
+Implement functional weapon/armor slots with stat bonuses.
+
+Durability must degrade based on damage dealt/received.
+
+Implement stance-based wear rates (Offensive/Defensive).
+
+Update the HUD to display equipped items and their durability bars.
+
+💬 Battle Dialogue & Narrative Updates
+
+Implement a first-person, lore-friendly descriptive text system for all actions.
+
+Color-code text for player (blue) and enemy (red) actions.
+
+Ensure the expandable log shows the last 4 actions when collapsed and the full history when expanded.
+
+🎒 Inventory & Throwable Items
+
+Implement inventory slots for one extra weapon and one extra armor piece.
+
+Create logic for swapping equipment (costs one turn).
+
+Implement limited-use throwable items (Kunai, Smoke Bombs) as bonus actions.
+
+Last Updated: v48 - Stable Build
+Next Major Update: v49 - Equipment, Attrition & Narrative Log
